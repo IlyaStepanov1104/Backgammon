@@ -1,36 +1,237 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Backgammon Cards - Система изучения игры в короткие нарды
 
-## Getting Started
+Проект состоит из трех основных компонентов:
+1. **Telegram бот** - для взаимодействия с пользователями и предоставления доступа к миниаппу
+2. **Миниапп** - веб-приложение для изучения карточек с позициями
+3. **Админ-панель** - для управления карточками, пользователями и промокодами
 
-First, run the development server:
+## Технологии
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Backend**: Next.js 15, Node.js
+- **Database**: MySQL 8.0+
+- **Bot**: node-telegram-bot-api
+- **Authentication**: JWT + bcrypt
+- **Styling**: Tailwind CSS
+- **Payment**: YooKassa (готово к интеграции)
+
+## Структура проекта
+
+```
+backgammon-cards/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── admin/             # Админ-панель
+│   │   ├── miniapp/           # Миниапп для пользователей
+│   │   └── api/               # API роуты
+│   ├── bot/                   # Telegram бот
+│   ├── database/              # База данных и миграции
+│   
+├── public/                    # Статические файлы
+├── env.example               # Пример конфигурации
+└── package.json
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Установка и настройка
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 1. Клонирование репозитория
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+git clone <repository-url>
+cd backgammon-cards
+```
 
-## Learn More
+### 2. Установка зависимостей
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Настройка базы данных
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Создайте MySQL базу данных:
+```sql
+CREATE DATABASE backgammon_cards CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-## Deploy on Vercel
+2. Скопируйте файл конфигурации:
+```bash
+cp env.example .env
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Отредактируйте `.env` файл:
+```env
+# Database
+DB_HOST=localhost
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_NAME=backgammon_cards
+DB_PORT=3306
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/telegram/webhook
+
+
+
+# Admin credentials
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin123
+
+# App settings
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=your_bot_username
+```
+
+### 4. Запуск миграций базы данных
+
+```bash
+npm run db:migrate
+```
+
+### 5. Создание Telegram бота
+
+1. Найдите @BotFather в Telegram
+2. Создайте нового бота командой `/newbot`
+3. Получите токен и добавьте его в `.env`
+4. **Бот работает с пуллингом** - вебхуки не требуются!
+
+## Запуск проекта
+
+### Режим разработки
+
+```bash
+npm run db:migrate
+```
+
+### Запуск бота
+
+```bash
+npm run bot
+```
+
+### Сборка для продакшена
+
+```bash
+npm run build
+npm start
+```
+
+## Использование
+
+### Telegram бот
+
+1. Пользователь отправляет `/start` боту
+2. Бот сохраняет пользователя в базе данных
+3. Если у пользователя есть доступ - показывает кнопку для открытия миниаппа
+4. Если доступа нет - предлагает ввести промокод
+
+### Миниапп
+
+1. Пользователь открывает миниапп через кнопку в боте
+2. Просматривает карточки с позициями
+3. Может:
+   - Показать ответ на карточку
+   - Отметить правильность своего ответа
+   - Добавить карточку в избранное
+   - Переключаться между карточками
+   - Просматривать избранные карточки
+
+### Админ-панель
+
+1. Доступ по адресу `/admin`
+2. Логин: `admin`, пароль: `admin123`
+3. Возможности:
+   - Создание и редактирование карточек
+   - Управление пользователями и их доступом
+   - Создание промокодов
+   - Просмотр статистики
+
+## API Endpoints
+
+### Админ API
+
+- `POST /api/admin/login` - авторизация администратора
+- `GET /api/admin/cards` - получение списка карточек
+- `POST /api/admin/cards` - создание карточки
+- `PUT /api/admin/cards` - обновление карточки
+- `DELETE /api/admin/cards` - удаление карточки
+- `GET /api/admin/users` - получение списка пользователей
+- `POST /api/admin/users` - предоставление доступа пользователю
+
+### Миниапп API
+
+- `GET /api/miniapp/cards` - получение карточек для пользователя
+- `POST /api/miniapp/cards` - сохранение ответа пользователя
+- `POST /api/miniapp/favorites` - добавление в избранное
+- `DELETE /api/miniapp/favorites` - удаление из избранного
+
+### Telegram Bot
+
+- Бот работает с пуллингом (без вебхуков)
+- Автоматическая обработка команд и промокодов
+- Интеграция с мини-приложением
+
+## База данных
+
+Проект включает полную схему базы данных с таблицами для:
+- Пользователей
+- Карточек
+- Доступа пользователей к карточкам
+- Избранных карточек
+- Ответов пользователей
+- Промокодов
+- Пакетов карточек
+- Покупок
+
+## Развертывание
+
+### Локальное развертывание
+
+1. Установите MySQL
+2. Создайте базу данных
+3. Настройте `.env` файл
+4. Запустите миграции
+5. Запустите проект
+
+### Продакшен развертывание
+
+1. Настройте SSL сертификат
+2. Настройте домен
+3. Обновите `TELEGRAM_WEBHOOK_URL` в `.env`
+4. Настройте вебхук для бота
+5. Запустите с PM2 или аналогичным менеджером процессов
+
+## Безопасность
+
+- JWT токены для авторизации администраторов
+- Хеширование паролей с bcrypt
+- Валидация входных данных
+- Защита от SQL инъекций через параметризованные запросы
+
+## Расширение функционала
+
+### Добавление новых функций
+
+1. **Голосовые комментарии**: Интеграция с Web Audio API
+2. **Аналитика**: Детальная статистика по пользователям
+3. **Уведомления**: Push-уведомления о новых карточках
+4. **Социальные функции**: Комментарии и рейтинги
+
+### Интеграция с платежными системами
+
+Проект готов к интеграции с YooKassa:
+- Создание пакетов карточек
+- Обработка платежей
+- Автоматическое предоставление доступа после оплаты
+
+## Поддержка
+
+При возникновении проблем:
+1. Проверьте логи в консоли
+2. Убедитесь в правильности настроек в `.env`
+3. Проверьте подключение к базе данных
+4. Убедитесь в корректности токена бота
+
+## Лицензия
+
+Проект разработан для изучения игры в короткие нарды.
