@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { query } from '../../../../database/config';
-import bcrypt from 'bcryptjs';
 
 export async function POST(req) {
   try {

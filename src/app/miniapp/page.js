@@ -15,7 +15,6 @@ export default function Miniapp() {
     const [showFavorites, setShowFavorites] = useState(false);
     const [favorites, setFavorites] = useState([]);
     const [userResponse, setUserResponse] = useState(null);
-    console.log("%c 2 --> Line: 18||page.js\n userResponse: ", "color:#0f0;", userResponse);
 
     useEffect(() => {
         if (telegramId) {
@@ -25,7 +24,7 @@ export default function Miniapp() {
     }, [telegramId]);
 
     useEffect(() => {
-        setUserResponse(cards[currentCardIndex]?.is_correct !== undefined ? Boolean(cards[currentCardIndex].is_correct) : null);
+        setUserResponse(cards[currentCardIndex]?.is_correct !== undefined && cards[currentCardIndex]?.is_correct !== -1 ? Boolean(cards[currentCardIndex].is_correct) : null);
     }, [cards[currentCardIndex]])
 
     const fetchCards = async () => {
