@@ -108,6 +108,24 @@ CREATE TABLE package_purchases (
     FOREIGN KEY (package_id) REFERENCES card_packages(id) ON DELETE CASCADE
 );
 
+-- Таблица меток
+CREATE TABLE tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица связи карточек и меток
+CREATE TABLE card_tags (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    card_id INT NOT NULL,
+    tag_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_card_tag (card_id, tag_id)
+);
+
 -- Таблица администраторов
 CREATE TABLE admins (
     id INT AUTO_INCREMENT PRIMARY KEY,

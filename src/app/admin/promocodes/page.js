@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePromocodes, useCreatePromocode, useUpdatePromocode, useDeletePromocode } from '../../../hooks/usePromocodes';
 import { generatePromocode } from '../../../utils/promocodes';
-import CardSelector from '../../../components/CardSelector';
+import CardSelectorWithRange from '../../../components/CardSelectorWithRange';
 
 export default function PromocodesPage() {
   const [promocodes, setPromocodes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPromocode, setEditingPromocode] = useState(null);
-  const [showCardSelector, setShowCardSelector] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
     description: '',
@@ -90,10 +89,6 @@ export default function PromocodesPage() {
     setFormData(prev => ({ ...prev, code: newCode }));
   };
 
-  const handleCardSelection = (selectedCardIds) => {
-    setFormData(prev => ({ ...prev, cardIds: selectedCardIds }));
-  };
-
   return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
@@ -138,7 +133,7 @@ export default function PromocodesPage() {
 
         {(showCreateModal || editingPromocode) && (
             <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-start pt-20 z-50">
-              <div className="bg-white rounded-md shadow-lg p-6 w-96">
+              <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-md">
                 <h3 className="text-lg font-medium mb-4">{editingPromocode ? 'Редактировать промокод' : 'Создать промокод'}</h3>
                 <form onSubmit={(e) => { e.preventDefault(); editingPromocode ? handleUpdatePromocode() : handleCreatePromocode(); }}>
                   <div className="mb-4">
@@ -157,10 +152,12 @@ export default function PromocodesPage() {
                     <input type="number" required min="1" value={formData.maxUses} onChange={(e) => setFormData(prev => ({ ...prev, maxUses: parseInt(e.target.value) }))} className="w-full px-3 py-2 border rounded-md"/>
                   </div>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2">Выбрать карточки *</label>
-                    <button type="button" onClick={() => setShowCardSelector(true)} className="w-full px-3 py-2 border rounded-md text-left">
-                      {formData.cardIds.length > 0 ? `${formData.cardIds.length} карточек выбрано` : 'Нажмите для выбора карточек'}
-                    </button>
+                    <CardSelectorWithRange
+                      selectedCardIds={formData.cardIds}
+                      onSelectionChange={(cardIds) => setFormData(prev => ({ ...prev, cardIds }))}
+                      label="Выбрать карточки"
+                      required={true}
+                    />
                   </div>
                   <div className="mb-6">
                     <label className="flex items-center">
@@ -177,9 +174,6 @@ export default function PromocodesPage() {
             </div>
         )}
 
-        {showCardSelector && (
-            <CardSelector selectedCardIds={formData.cardIds} onSelectionChange={handleCardSelection} onClose={() => setShowCardSelector(false)} />
-        )}
       </div>
   );
 }

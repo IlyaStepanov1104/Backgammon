@@ -104,6 +104,26 @@ export async function POST(request) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
       
+      // Проверяем существование всех карточек
+      if (cardIds.length > 0) {
+        const placeholders = cardIds.map(() => '?').join(',');
+        const [existingCardsCheck] = await connection.execute(
+          `SELECT id FROM cards WHERE id IN (${placeholders})`,
+          cardIds
+        );
+        const existingCardIds = existingCardsCheck.map(row => row.id);
+        const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
+        
+        if (invalidCardIds.length > 0) {
+          await connection.rollback();
+          connection.release();
+          return NextResponse.json({ 
+            error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
+            invalidCardIds 
+          }, { status: 400 });
+        }
+      }
+
       // Предоставляем доступ к карточкам
       for (const cardId of cardIds) {
         await connection.execute(
@@ -150,14 +170,35 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'User ID and cardIds array are required' }, { status: 400 });
     }
 
-    const connection = await await require('../../../../database/config').getConnection();
+    const connection = await require('../../../../database/config').getConnection();
     await connection.beginTransaction();
 
     try {
       const [userCheck] = await connection.execute('SELECT id FROM users WHERE id = ?', [userId]);
       if (userCheck.length === 0) {
         await connection.rollback();
+        connection.release();
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      // Проверяем существование всех карточек
+      if (cardIds.length > 0) {
+        const placeholders = cardIds.map(() => '?').join(',');
+        const [existingCardsCheck] = await connection.execute(
+          `SELECT id FROM cards WHERE id IN (${placeholders})`,
+          cardIds
+        );
+        const existingCardIds = existingCardsCheck.map(row => row.id);
+        const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
+        
+        if (invalidCardIds.length > 0) {
+          await connection.rollback();
+          connection.release();
+          return NextResponse.json({ 
+            error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
+            invalidCardIds 
+          }, { status: 400 });
+        }
       }
 
       const [existingCards] = await connection.execute(

@@ -82,7 +82,7 @@ export default function Miniapp() {
     };
 
     const handleToggleFavorite = async () => {
-        const currentCard = cards[currentCardIndex];
+        const currentCard = showFavorites ? favorites[currentCardIndex] : cards[currentCardIndex];
         const isFavorite = favorites.some(fav => fav.id === currentCard.id);
 
         try {
@@ -91,7 +91,19 @@ export default function Miniapp() {
                 await fetch(`/api/miniapp/favorites?user=${telegramId}&card=${currentCard.id}`, {
                     method: 'DELETE'
                 });
-                setFavorites(favorites.filter(fav => fav.id !== currentCard.id));
+                const updatedFavorites = favorites.filter(fav => fav.id !== currentCard.id);
+                setFavorites(updatedFavorites);
+                
+                // Если мы в режиме избранного и удалили последнюю карточку, переключаемся на все карточки
+                if (showFavorites && updatedFavorites.length === 0) {
+                    switchToAllCards();
+                } else if (showFavorites) {
+                    // Если удалили карточку в режиме избранного, переходим на предыдущую или первую
+                    const newIndex = currentCardIndex >= updatedFavorites.length 
+                        ? Math.max(0, updatedFavorites.length - 1)
+                        : currentCardIndex;
+                    setCurrentCardIndex(newIndex);
+                }
             } else {
                 // Добавляем в избранное
                 await fetch('/api/miniapp/favorites', {
@@ -128,6 +140,10 @@ export default function Miniapp() {
     };
 
     const switchToFavorites = () => {
+        if (favorites.length === 0) {
+            alert('У вас пока нет избранных карточек. Добавьте карточки в избранное, чтобы они здесь появились.');
+            return;
+        }
         setShowFavorites(true);
         setCurrentCardIndex(0);
         setShowAnswer(false);
@@ -175,6 +191,25 @@ export default function Miniapp() {
     const currentCard = currentCards[currentCardIndex];
 
     if (!currentCard) {
+        if (showFavorites && favorites.length === 0) {
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div className="text-center max-w-md mx-4">
+                        <div className="text-6xl mb-4">⭐</div>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Нет избранных карточек</h1>
+                        <p className="text-gray-600 mb-6">
+                            Добавьте карточки в избранное, чтобы они здесь появились. Для этого откройте карточку, нажмите "Показать ответ" и затем "В избранное".
+                        </p>
+                        <button
+                            onClick={switchToAllCards}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
+                        >
+                            Перейти ко всем карточкам
+                        </button>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                 <div className="text-center">
@@ -189,11 +224,33 @@ export default function Miniapp() {
         <div className="min-h-screen bg-gray-100">
             {/* Main Content */}
             <main className="max-w-4xl mx-auto py-6 px-4">
-                {/* Card Counter */}
-                <div className="text-center mb-4">
-          <span className="text-sm text-gray-600">
-            Карточка {currentCardIndex + 1} из {currentCards.length}
-          </span>
+                {/* Header with Favorites Button */}
+                <div className="flex justify-between items-center mb-4">
+                    <button
+                        onClick={showFavorites ? switchToAllCards : switchToFavorites}
+                        disabled={!showFavorites && favorites.length === 0}
+                        className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                            showFavorites
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : favorites.length === 0
+                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                        }`}
+                        title={favorites.length === 0 ? 'Добавьте карточки в избранное' : ''}
+                    >
+                        <span>⭐</span>
+                        <span>{showFavorites ? 'Все карточки' : `Избранное (${favorites.length})`}</span>
+                    </button>
+                    <div className="text-center">
+                        <span className="text-sm text-gray-600">
+                            Карточка {currentCardIndex + 1} из {currentCards.length}
+                        </span>
+                        {showFavorites && (
+                            <div className="text-xs text-gray-500 mt-1">
+                                Режим избранного
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Card */}
@@ -217,9 +274,36 @@ export default function Miniapp() {
                             <>
                                 {currentCard.description && (
                                     <div className="mb-6">
-                                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                            {currentCard.description}
-                                        </p>
+                                        <div 
+                                            className="text-gray-700 leading-relaxed"
+                                            style={{
+                                                wordWrap: 'break-word',
+                                                overflowWrap: 'break-word'
+                                            }}
+                                            dangerouslySetInnerHTML={{ 
+                                                __html: currentCard.description 
+                                            }}
+                                        />
+                                        <style jsx global>{`
+                                            .text-gray-700 strong {
+                                                font-weight: bold;
+                                            }
+                                            .text-gray-700 em {
+                                                font-style: italic;
+                                            }
+                                            .text-gray-700 u {
+                                                text-decoration: underline;
+                                            }
+                                            .text-gray-700 p {
+                                                margin: 0.5em 0;
+                                            }
+                                            .text-gray-700 p:first-child {
+                                                margin-top: 0;
+                                            }
+                                            .text-gray-700 p:last-child {
+                                                margin-bottom: 0;
+                                            }
+                                        `}</style>
                                     </div>
                                 )}
 
@@ -264,11 +348,13 @@ export default function Miniapp() {
                                         onClick={handleToggleFavorite}
                                         className={`px-4 py-2 rounded-lg font-medium ${
                                             favorites.some(fav => fav.id === currentCard.id)
-                                                ? 'bg-yellow-600 text-white'
+                                                ? 'bg-yellow-600 text-white hover:bg-yellow-700'
                                                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                         }`}
                                     >
-                                        {favorites.some(fav => fav.id === currentCard.id) ? 'В избранном' : 'В избранное'}
+                                        {favorites.some(fav => fav.id === currentCard.id) 
+                                            ? (showFavorites ? 'Удалить из избранного' : 'В избранном')
+                                            : 'В избранное'}
                                     </button>
 
                                     <button

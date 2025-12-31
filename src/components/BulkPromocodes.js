@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import { useBulkPromocodes } from '../hooks/usePromocodes';
 import { generatePromocode, createPromocodeBatch } from '../utils/promocodes';
-import CardSelector from './CardSelector';
+import CardSelectorWithRange from './CardSelectorWithRange';
 
 export default function BulkPromocodes({ onSuccess }) {
   const [showModal, setShowModal] = useState(false);
   const [operation, setOperation] = useState('create'); // create, delete, update
-  const [showCardSelector, setShowCardSelector] = useState(false);
   const [formData, setFormData] = useState({
     count: 10,
     prefix: 'PROMO',
@@ -69,9 +68,6 @@ export default function BulkPromocodes({ onSuccess }) {
     }
   };
 
-  const handleCardSelection = (selectedCardIds) => {
-    setFormData(prev => ({ ...prev, cardIds: selectedCardIds }));
-  };
 
   const resetForm = () => {
     setFormData({
@@ -218,18 +214,14 @@ export default function BulkPromocodes({ onSuccess }) {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-                                       <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                       Выбрать карточки
-                     </label>
-                     <button
-                       type="button"
-                       onClick={() => setShowCardSelector(true)}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-left text-gray-500 hover:border-blue-500"
-                     >
-                       {formData.cardIds.length > 0 ? `${formData.cardIds.length} карточек выбрано` : 'Нажмите для выбора карточек'}
-                     </button>
-                   </div>
+                  <div>
+                    <CardSelectorWithRange
+                      selectedCardIds={formData.cardIds}
+                      onSelectionChange={(cardIds) => setFormData(prev => ({ ...prev, cardIds }))}
+                      label="Выбрать карточки"
+                      required={true}
+                    />
+                  </div>
                   </div>
 
                   <div className="mb-4">
@@ -331,14 +323,6 @@ export default function BulkPromocodes({ onSuccess }) {
         </div>
                )}
 
-         {/* Селектор карточек */}
-         {showCardSelector && (
-           <CardSelector
-             selectedCardIds={formData.cardIds}
-             onSelectionChange={handleCardSelection}
-             onClose={() => setShowCardSelector(false)}
-           />
-         )}
        </>
      );
    }

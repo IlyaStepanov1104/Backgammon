@@ -127,6 +127,24 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Проверяем существование всех карточек
+    if (cardIds.length > 0) {
+      const placeholders = cardIds.map(() => '?').join(',');
+      const existingCards = await query(
+        `SELECT id FROM cards WHERE id IN (${placeholders})`,
+        cardIds
+      );
+      const existingCardIds = existingCards.map(row => row.id);
+      const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
+      
+      if (invalidCardIds.length > 0) {
+        return NextResponse.json({ 
+          error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
+          invalidCardIds 
+        }, { status: 400 });
+      }
+    }
+
     // Создаем промокод
     const result = await query(
       `INSERT INTO promo_codes (
@@ -208,6 +226,24 @@ export async function PUT(request) {
       return NextResponse.json({ 
         error: 'Promocode with this code already exists' 
       }, { status: 400 });
+    }
+
+    // Проверяем существование всех карточек перед обновлением
+    if (cardIds && Array.isArray(cardIds) && cardIds.length > 0) {
+      const placeholders = cardIds.map(() => '?').join(',');
+      const existingCards = await query(
+        `SELECT id FROM cards WHERE id IN (${placeholders})`,
+        cardIds
+      );
+      const existingCardIds = existingCards.map(row => row.id);
+      const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
+      
+      if (invalidCardIds.length > 0) {
+        return NextResponse.json({ 
+          error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
+          invalidCardIds 
+        }, { status: 400 });
+      }
     }
 
     // Обновляем промокод

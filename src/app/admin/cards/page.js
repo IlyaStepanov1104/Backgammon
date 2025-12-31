@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import RichTextEditor from '../../../components/RichTextEditor';
+import TagSelector from '../../../components/TagSelector';
 import { useRouter } from 'next/navigation';
 
 export default function CardsManagement() {
@@ -12,6 +14,9 @@ export default function CardsManagement() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState([]);
+  const [showTagSelectorFilter, setShowTagSelectorFilter] = useState(false);
+  const [tagFilterNames, setTagFilterNames] = useState({});
   const router = useRouter();
 
   useEffect(() => {
@@ -23,7 +28,7 @@ export default function CardsManagement() {
     }
     
     fetchCards();
-  }, [pagination.page, searchTerm, difficultyFilter]);
+  }, [pagination.page, searchTerm, difficultyFilter, tagFilter]);
 
   const fetchCards = async () => {
     try {
@@ -31,7 +36,8 @@ export default function CardsManagement() {
         page: pagination.page,
         limit: pagination.limit,
         search: searchTerm,
-        difficulty: difficultyFilter
+        difficulty: difficultyFilter,
+        tags: tagFilter.join(',') // ids
       });
 
       const response = await fetch(`/api/admin/cards?${params}`);
@@ -50,50 +56,38 @@ export default function CardsManagement() {
     }
   };
 
-  const handleCreateCard = async (cardData) => {
-    try {
-      let response;
-      
-      if (cardData instanceof FormData) {
-        // Загрузка файла
-        response = await fetch('/api/admin/cards', {
-          method: 'POST',
-          body: cardData
-        });
-      } else {
-        // Обычные данные
-        response = await fetch('/api/admin/cards', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(cardData)
-        });
-      }
+  useEffect(() => {
+    (async () => {
+    if (tagFilter.length > 0) {
+      try {
+        const response = await fetch('/api/admin/tags');
+        if (response.ok) {
+          const data = await response.json();
+          const nameMap = {};
+          data.tags.forEach(tag => {
+            nameMap[tag.id] = tag.name;
+          });
+          setTagFilterNames(nameMap);
+        }
+      } catch {}
+    }})();
+  }, [tagFilter]);
 
-      if (response.ok) {
-        setShowCreateForm(false);
-        fetchCards();
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Ошибка создания карточки');
-      }
-    } catch (error) {
-      setError('Ошибка соединения с сервером');
-    }
-  };
 
   const handleUpdateCard = async (cardData) => {
     try {
+      let cardId;
       let response;
-      
+
       if (cardData instanceof FormData) {
+        cardId = cardData.get('id');
         // Загрузка файла
         response = await fetch('/api/admin/cards', {
           method: 'PUT',
           body: cardData
         });
       } else {
+        cardId = cardData.id;
         // Обычные данные
         response = await fetch('/api/admin/cards', {
           method: 'PUT',
@@ -105,6 +99,10 @@ export default function CardsManagement() {
       }
 
       if (response.ok) {
+        // Обновляем метки карточки
+        if (cardData.tags) {
+          await updateCardTags(cardId, cardData.tags);
+        }
         setEditingCard(null);
         fetchCards();
       } else {
@@ -113,6 +111,38 @@ export default function CardsManagement() {
       }
     } catch (error) {
       setError('Ошибка соединения с сервером');
+    }
+  };
+
+  const updateCardTags = async (cardId, selectedTagIds) => {
+    try {
+      // Получаем текущие метки карточки
+      const currentTagsResponse = await fetch(`/api/admin/cards/${cardId}/tags`);
+      const currentTags = currentTagsResponse.ok ? (await currentTagsResponse.json()).tags : [];
+
+      const currentTagIds = currentTags.map(tag => tag.id);
+      const tagsToAdd = selectedTagIds.filter(id => !currentTagIds.includes(id));
+      const tagsToRemove = currentTagIds.filter(id => !selectedTagIds.includes(id));
+
+      // Добавляем новые метки
+      for (const tagId of tagsToAdd) {
+        await fetch(`/api/admin/cards/${cardId}/tags`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tag_id: tagId, id: cardId })
+        });
+      }
+
+      // Удаляем ненужные метки
+      for (const tagId of tagsToRemove) {
+        await fetch(`/api/admin/cards/${cardId}/tags?tag_id=${tagId}`, {
+          method: 'DELETE'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating card tags:', error);
     }
   };
 
@@ -142,6 +172,18 @@ export default function CardsManagement() {
         <div className="text-xl">Загрузка...</div>
       </div>
     );
+  
+    // Tag Selector Modal
+    {showTagSelectorFilter && (
+      <TagSelector
+        selectedTagIds={tagFilter}
+        onSelectionChange={(selectedIds) => {
+          setTagFilter(selectedIds);
+          setPagination(prev => ({ ...prev, page: 1 }));
+        }}
+        onClose={() => setShowTagSelectorFilter(false)}
+      />
+    )}
   }
 
   return (
@@ -204,11 +246,23 @@ export default function CardsManagement() {
                   <option value="hard">Сложная</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Метки
+                </label>
+                <button
+                  onClick={() => setShowTagSelectorFilter(true)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-left"
+                >
+                  Выбрать метки ({tagFilter.length})
+                </button>
+              </div>
               <div className="flex items-end">
                 <button
                   onClick={() => {
                     setSearchTerm('');
                     setDifficultyFilter('');
+                    setTagFilter([]);
                     setPagination(prev => ({ ...prev, page: 1 }));
                   }}
                   className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -234,17 +288,25 @@ export default function CardsManagement() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
+                        <span className="text-sm font-mono text-gray-500">#{card.id}</span>
                         <h3 className="text-lg font-medium text-gray-900">
                           {card.title}
                         </h3>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          card.difficulty_level === 'easy' ? 'bg-green-100 text-green-800' :
-                          card.difficulty_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {card.difficulty_level === 'easy' ? 'Легкая' :
-                           card.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            card.difficulty_level === 'easy' ? 'bg-green-100 text-green-800' :
+                            card.difficulty_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {card.difficulty_level === 'easy' ? 'Легкая' :
+                             card.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
+                          </span>
+                          {card.tags && card.tags.split(', ').map((tag, index) => (
+                            <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                       {card.description && (
                         <p className="mt-1 text-sm text-gray-600 line-clamp-2">
@@ -338,6 +400,15 @@ export default function CardsManagement() {
           }}
         />
       )}
+      {showTagSelectorFilter && (
+        <TagSelector
+          selectedTagIds={tagFilter}
+          onSelectionChange={(selectedIds) => {
+            setTagFilter(selectedIds);
+          }}
+          onClose={() => setShowTagSelectorFilter(false)}
+        />
+      )}
     </div>
   );
 }
@@ -350,8 +421,60 @@ function CardForm({ card, onSubmit, onCancel }) {
     image_url: card?.image_url || '',
     correct_moves: card?.correct_moves || '',
     position_description: card?.position_description || '',
-    difficulty_level: card?.difficulty_level || 'medium'
+    difficulty_level: card?.difficulty_level || 'medium',
+    tags: []
   });
+  const [showTagSelector, setShowTagSelector] = useState(false);
+  const [tagNames, setTagNames] = useState({});
+
+  useEffect(() => {
+    if (card) {
+      // Загружаем метки карточки при редактировании
+      fetchCardTags();
+    }
+  }, [card]);
+
+  const fetchCardTags = async () => {
+    try {
+      const response = await fetch(`/api/admin/cards/${card.id}/tags`);
+      if (response.ok) {
+        const data = await response.json();
+        const tagMap = {};
+        data.tags.forEach(tag => {
+          tagMap[tag.id] = tag.name;
+        });
+        setTagNames(tagMap);
+        setFormData(prev => ({
+          ...prev,
+          tags: data.tags.map(tag => tag.id)
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching card tags:', error);
+    }
+  };
+
+  const handleTagSelection = (selectedIds) => {
+    // Обновляем tagNames для новых выбранных меток
+    selectedIds.forEach(async (tagId) => {
+      if (!tagNames[tagId]) {
+        try {
+          const response = await fetch('/api/admin/tags');
+          if (response.ok) {
+            const data = await response.json();
+            const tag = data.tags.find(t => t.id == tagId);
+            if (tag) {
+              setTagNames(prev => ({ ...prev, [tagId]: tag.name }));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching tag name:', error);
+        }
+      }
+    });
+
+    setFormData(prev => ({ ...prev, tags: selectedIds }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -365,11 +488,12 @@ function CardForm({ card, onSubmit, onCancel }) {
       formDataToSend.append('correct_moves', formData.correct_moves);
       formDataToSend.append('position_description', formData.position_description);
       formDataToSend.append('difficulty_level', formData.difficulty_level);
-      
+      formDataToSend.append('tags', JSON.stringify(formData.tags));
+
       if (card) {
         formDataToSend.append('id', card.id);
       }
-      
+
       onSubmit(formDataToSend);
     } else {
       // Если файла нет, отправляем обычные данные
@@ -380,11 +504,16 @@ function CardForm({ card, onSubmit, onCancel }) {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {card ? 'Редактировать карточку' : 'Создать карточку'}
+            {card ? `Редактировать карточку #${card.id}` : 'Создать карточку'}
           </h3>
+          {card && (
+            <div className="mb-4 text-sm text-gray-600">
+              <span className="font-mono">ID: {card.id}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Название *</label>
@@ -398,13 +527,16 @@ function CardForm({ card, onSubmit, onCancel }) {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700">Описание</label>
-              <textarea
-                rows="3"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              <label className="block text-sm font-medium text-gray-700 mb-2">Описание</label>
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                placeholder="Введите описание карточки..."
+                rows={5}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Выделите текст и используйте кнопки форматирования для изменения стиля
+              </p>
             </div>
             
             <div>
@@ -445,6 +577,26 @@ function CardForm({ card, onSubmit, onCancel }) {
                 <option value="hard">Сложная</option>
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Метки</label>
+              <button
+                type="button"
+                onClick={() => setShowTagSelector(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-left"
+              >
+                Выбрать метки ({formData.tags.length})
+              </button>
+              {formData.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {formData.tags.map(tagId => (
+                    <span key={tagId} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {tagNames[tagId] || 'Загрузка...'}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <div className="flex justify-end space-x-3 pt-4">
               <button
@@ -464,6 +616,18 @@ function CardForm({ card, onSubmit, onCancel }) {
           </form>
         </div>
       </div>
+
+      {/* Tag Selector Modal for Card Form */}
+      {showTagSelector && (
+        <TagSelector
+          selectedTagIds={formData.tags}
+          onSelectionChange={(selectedIds) => {
+            setFormData(prev => ({ ...prev, tags: selectedIds }));
+            handleTagSelection(selectedIds);
+          }}
+          onClose={() => setShowTagSelector(false)}
+        />
+      )}
     </div>
   );
 }

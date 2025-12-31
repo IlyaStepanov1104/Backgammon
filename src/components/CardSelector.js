@@ -8,10 +8,11 @@ export default function CardSelector({ selectedCardIds = [], onSelectionChange, 
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCards, setSelectedCards] = useState(selectedCardIds);
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
 
   useEffect(() => {
     fetchCards();
-  }, []);
+  }, [selectedTagIds]);
 
   useEffect(() => {
     setSelectedCards(selectedCardIds);
@@ -20,8 +21,13 @@ export default function CardSelector({ selectedCardIds = [], onSelectionChange, 
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/cards');
-      
+      const params = new URLSearchParams();
+      if (selectedTagIds.length > 0) {
+        params.set('tags', selectedTagIds.join(','));
+      }
+
+      const response = await fetch(`/api/admin/cards?${params}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch cards');
       }
@@ -143,7 +149,10 @@ export default function CardSelector({ selectedCardIds = [], onSelectionChange, 
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                         <div>
-                          <div className="font-medium text-gray-900">{card.title}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-gray-400">#{card.id}</span>
+                            <div className="font-medium text-gray-900">{card.title}</div>
+                          </div>
                           <div className="text-sm text-gray-600">
                             {card.description ? card.description.substring(0, 100) + '...' : 'Без описания'}
                           </div>

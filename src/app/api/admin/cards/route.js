@@ -20,37 +20,81 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit')) || 20;
     const search = searchParams.get('search') || '';
     const difficulty = searchParams.get('difficulty') || '';
+    const tags = searchParams.get('tags') || '';
     
-    let sql = 'SELECT * FROM cards WHERE 1=1';
+    let sql = `
+      SELECT c.*,
+             GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ', ') as tags
+      FROM cards c
+      LEFT JOIN card_tags ct ON c.id = ct.card_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE 1=1
+    `;
     let params = [];
-    
+
     if (search) {
-      sql += ' AND (title LIKE ? OR description LIKE ?)';
+      sql += ' AND (c.title LIKE ? OR c.description LIKE ?)';
       params.push(`%${search}%`, `%${search}%`);
     }
-    
+
     if (difficulty) {
-      sql += ' AND difficulty_level = ?';
+      sql += ' AND c.difficulty_level = ?';
       params.push(difficulty);
     }
+
+    if (tags) {
+      const tagArray = tags
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(Boolean);
     
-    sql += ' ORDER BY created_at DESC';
+      if (tagArray.length > 0) {
+        const placeholders = tagArray.map(() => '?').join(',');
+    
+        sql += `
+          AND EXISTS (
+            SELECT 1
+            FROM card_tags ct
+            WHERE ct.card_id = c.id
+              AND ct.tag_id IN (${placeholders})
+          )
+        `;
+    
+        params.push(...tagArray);
+      }
+    }
+
+    sql += ' GROUP BY c.id ORDER BY c.created_at DESC';
     
     // Используем безопасную функцию пагинации
     const cards = await queryWithPagination(sql, params, limit, (page - 1) * limit);
     
     // Получаем общее количество карточек
-    let countSql = 'SELECT COUNT(*) as total FROM cards WHERE 1=1';
+    let countSql = `
+      SELECT COUNT(DISTINCT c.id) as total
+      FROM cards c
+      LEFT JOIN card_tags ct ON c.id = ct.card_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE 1=1
+    `;
     let countParams = [];
-    
+
     if (search) {
-      countSql += ' AND (title LIKE ? OR description LIKE ?)';
+      countSql += ' AND (c.title LIKE ? OR c.description LIKE ?)';
       countParams.push(`%${search}%`, `%${search}%`);
     }
-    
+
     if (difficulty) {
-      countSql += ' AND difficulty_level = ?';
+      countSql += ' AND c.difficulty_level = ?';
       countParams.push(difficulty);
+    }
+
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tagArray.length > 0) {
+        countSql += ' AND c.id IN (SELECT ct.card_id FROM card_tags ct JOIN tags t ON ct.tag_id = t.id WHERE t.name IN (?))';
+        countParams.push(tagArray);
+      }
     }
     
     const countResult = await query(countSql, countParams);

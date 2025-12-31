@@ -2,6 +2,7 @@
 
 import {useState, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
+import CardSelectorWithRange from '../../../components/CardSelectorWithRange';
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -18,7 +19,10 @@ export default function UsersPage() {
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [selectedCards, setSelectedCards] = useState([]);
     const [expiresAt, setExpiresAt] = useState('');
-    const [cards, setCards] = useState([]);
+    const [error, setError] = useState('');
+    const [showFavoritesModal, setShowFavoritesModal] = useState(false);
+    const [userFavorites, setUserFavorites] = useState([]);
+    const [loadingFavorites, setLoadingFavorites] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -28,7 +32,6 @@ export default function UsersPage() {
             return;
         }
         fetchUsers();
-        fetchCards();
     }, [pagination.page, pagination.limit, searchTerm, hasAccess, router]);
 
     const fetchUsers = async () => {
@@ -68,20 +71,53 @@ export default function UsersPage() {
         }
     };
 
-    const fetchCards = async () => {
+    const fetchUserFavorites = async (userId) => {
         try {
-            const response = await fetch('/api/admin/cards?limit=1000');
+            setLoadingFavorites(true);
+            const response = await fetch(`/api/admin/users/${userId}/favorites`);
             if (response.ok) {
                 const data = await response.json();
-                setCards(data.cards);
+                setUserFavorites(data.favorites || []);
+                setShowFavoritesModal(true);
+            } else {
+                console.error('Failed to fetch favorites');
             }
         } catch (error) {
-            console.error('Error fetching cards:', error);
+            console.error('Error fetching favorites:', error);
+        } finally {
+            setLoadingFavorites(false);
         }
     };
 
+    const handleRemoveFavorite = async (userId, cardId) => {
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/favorites?cardId=${cardId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                // Обновляем список избранных
+                setUserFavorites(prev => prev.filter(fav => fav.id !== cardId));
+                // Обновляем список пользователей
+                fetchUsers();
+            } else {
+                console.error('Failed to remove favorite');
+            }
+        } catch (error) {
+            console.error('Error removing favorite:', error);
+        }
+    };
+
+
     const handleGrantAccess = async () => {
         if (!selectedUser) return;
+
+        setError('');
+        
+        if (selectedCards.length === 0) {
+            setError('Выберите хотя бы одну карточку');
+            return;
+        }
 
         try {
             const response = await fetch(`/api/admin/users`, {
@@ -99,12 +135,15 @@ export default function UsersPage() {
                 setSelectedUser(null);
                 setSelectedCards([]);
                 setExpiresAt('');
+                setError('');
                 fetchUsers();
             } else {
-                console.error('Failed to grant access');
+                const data = await response.json();
+                setError(data.error || 'Ошибка при предоставлении доступа');
             }
         } catch (error) {
             console.error('Error granting access:', error);
+            setError('Ошибка соединения с сервером');
         }
     };
 
@@ -225,7 +264,15 @@ export default function UsersPage() {
                                     {user.accessible_cards || 0} карточек
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {user.favorite_cards || 0} карточек
+                                    <button
+                                        onClick={() => {
+                                            setSelectedUser(user);
+                                            fetchUserFavorites(user.id);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-900 underline"
+                                    >
+                                        {user.favorite_cards || 0} карточек
+                                    </button>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     {formatDateTime(user.created_at)}
@@ -289,30 +336,19 @@ export default function UsersPage() {
                             Предоставить доступ пользователю {selectedUser?.first_name}
                         </h3>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium mb-2">Выберите карточки:</label>
-                            <div className="space-y-2">
-                                {cards.map(card => (
-                                    <label
-                                        key={card.id}
-                                        className="flex items-center space-x-2 border p-2 rounded cursor-pointer"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCards.includes(card.id)}
-                                            onChange={(e) => {
-                                                if (e.target.checked) {
-                                                    setSelectedCards(prev => [...prev, card.id]);
-                                                } else {
-                                                    setSelectedCards(prev => prev.filter(id => id !== card.id));
-                                                }
-                                            }}
-                                            className="w-4 h-4"
-                                        />
-                                        <span>{card.title}</span>
-                                    </label>
-                                ))}
+                        {error && (
+                            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
                             </div>
+                        )}
+
+                        <div className="mb-4">
+                            <CardSelectorWithRange
+                                selectedCardIds={selectedCards}
+                                onSelectionChange={setSelectedCards}
+                                label="Выберите карточки"
+                                required={true}
+                            />
                         </div>
 
                         <div className="mb-4">
@@ -327,7 +363,12 @@ export default function UsersPage() {
 
                         <div className="flex justify-end space-x-3">
                             <button
-                                onClick={() => setShowAccessModal(false)}
+                                onClick={() => {
+                                    setShowAccessModal(false);
+                                    setError('');
+                                    setSelectedCards([]);
+                                    setExpiresAt('');
+                                }}
                                 className="px-4 py-2 border rounded"
                             >
                                 Отмена
@@ -337,6 +378,84 @@ export default function UsersPage() {
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
                                 Предоставить доступ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Модальное окно для просмотра избранных карточек */}
+            {showFavoritesModal && selectedUser && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                        <h3 className="text-lg font-semibold mb-4">
+                            Избранные карточки пользователя {selectedUser?.first_name}
+                        </h3>
+
+                        {loadingFavorites ? (
+                            <div className="text-center py-8">Загрузка...</div>
+                        ) : userFavorites.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                У пользователя нет избранных карточек
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {userFavorites.map((favorite) => (
+                                    <div
+                                        key={favorite.id}
+                                        className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
+                                    >
+                                        <div className="flex items-center space-x-4 flex-1">
+                                            {favorite.image_url && (
+                                                <img
+                                                    src={favorite.image_url}
+                                                    alt={favorite.title}
+                                                    className="w-16 h-16 object-cover rounded"
+                                                />
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-mono text-gray-400">#{favorite.id}</span>
+                                                    <h4 className="font-medium text-gray-900">{favorite.title}</h4>
+                                                </div>
+                                                {favorite.description && (
+                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                        {favorite.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                    <span>
+                                                        Сложность: {favorite.difficulty_level === 'easy' ? 'Легкая' :
+                                                        favorite.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
+                                                    </span>
+                                                    <span>
+                                                        Добавлено: {new Date(favorite.favorite_added_at).toLocaleDateString('ru-RU')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveFavorite(selectedUser.id, favorite.id)}
+                                            className="ml-4 text-red-600 hover:text-red-900 px-3 py-2 rounded hover:bg-red-50"
+                                            title="Удалить из избранного"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowFavoritesModal(false);
+                                    setSelectedUser(null);
+                                    setUserFavorites([]);
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                            >
+                                Закрыть
                             </button>
                         </div>
                     </div>
