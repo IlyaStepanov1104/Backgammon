@@ -21,6 +21,7 @@ const MiniappContent = () => {
     const [showCardListModal, setShowCardListModal] = useState(false);
     const [showSolvedModal, setShowSolvedModal] = useState(false);
     const [showUnsolvedModal, setShowUnsolvedModal] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
         if (telegramId) {
@@ -163,6 +164,7 @@ const MiniappContent = () => {
             setCurrentCardIndex(currentCardIndex + 1);
             setShowAnswer(false);
             setUserResponse(null);
+            setCurrentImageIndex(0); // Сброс индекса изображения при смене карточки
         }
     };
 
@@ -171,6 +173,22 @@ const MiniappContent = () => {
             setCurrentCardIndex(currentCardIndex - 1);
             setShowAnswer(false);
             setUserResponse(null);
+            setCurrentImageIndex(0); // Сброс индекса изображения при смене карточки
+        }
+    };
+
+    const nextImage = () => {
+        if (currentCard) {
+            const images = getAvailableImages(currentCard);
+            if (images.length > 1 && currentImageIndex < images.length - 1) {
+                setCurrentImageIndex(currentImageIndex + 1);
+            }
+        }
+    };
+
+    const prevImage = () => {
+        if (currentImageIndex > 0) {
+            setCurrentImageIndex(currentImageIndex - 1);
         }
     };
 
@@ -181,6 +199,7 @@ const MiniappContent = () => {
         }
         setShowFavorites(true);
         setCurrentCardIndex(0);
+        setCurrentImageIndex(0);
         setShowAnswer(false);
         setUserResponse(null);
     };
@@ -188,6 +207,7 @@ const MiniappContent = () => {
     const switchToAllCards = () => {
         setShowFavorites(false);
         setCurrentCardIndex(0);
+        setCurrentImageIndex(0);
         setShowAnswer(false);
         setUserResponse(null);
     };
@@ -198,11 +218,26 @@ const MiniappContent = () => {
             setCurrentCardIndex(cardIndex);
             setShowAnswer(false);
             setUserResponse(null);
+            setCurrentImageIndex(0); // Сброс индекса изображения
             // Если мы были в режиме избранного, переключаемся на все карточки
             if (showFavorites) {
                 setShowFavorites(false);
             }
         }
+    };
+
+    const getAvailableImages = (card) => {
+        const images = [];
+        if (card.image_url) {
+            images.push({ url: card.image_url, caption: 'Позиция' });
+        }
+        if (card.image_url_2) {
+            images.push({ url: card.image_url_2, caption: 'Ход в партии' });
+        }
+        if (card.image_url_3) {
+            images.push({ url: card.image_url_3, caption: 'Лучший ход' });
+        }
+        return images;
     };
 
     if (!telegramId) {
@@ -344,11 +379,55 @@ const MiniappContent = () => {
                 <div className="bg-white rounded-lg shadow-lg">
                     {/* Card Image */}
                     <div className="sticky top-0 z-10 bg-white shadow-sm">
-                        <img
-                            src={currentCard.image_url}
-                            alt={currentCard.title}
-                            className="w-full h-auto max-h-96 object-contain"
-                        />
+                        {(() => {
+                            const images = getAvailableImages(currentCard);
+                            const currentImage = images[currentImageIndex] || images[0];
+
+                            return (
+                                <div className="relative">
+                                    {/* Navigation Arrows */}
+                                    {images.length > 1 && (
+                                        <>
+                                            <button
+                                                onClick={prevImage}
+                                                disabled={currentImageIndex === 0}
+                                                className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
+                                                style={{ fontSize: '20px' }}
+                                            >
+                                                ‹
+                                            </button>
+                                            <button
+                                                onClick={nextImage}
+                                                disabled={currentImageIndex === images.length - 1}
+                                                className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
+                                                style={{ fontSize: '20px' }}
+                                            >
+                                                ›
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* Image */}
+                                    <img
+                                        src={currentImage.url}
+                                        alt={currentCard.title}
+                                        className="w-full h-auto max-h-96 object-contain"
+                                    />
+
+                                    {/* Caption */}
+                                    <div className="text-center py-2">
+                                        <span className="text-sm font-medium">
+                                            {currentImage.caption}
+                                        </span>
+                                        {images.length > 1 && (
+                                            <span className="text-xs ml-2 opacity-75">
+                                                ({currentImageIndex + 1}/{images.length})
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* Card Content */}

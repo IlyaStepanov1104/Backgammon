@@ -19,6 +19,8 @@ CREATE TABLE cards (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     image_url VARCHAR(500) NOT NULL,
+    image_url_2 VARCHAR(500) NULL,
+    image_url_3 VARCHAR(500) NULL,
     correct_moves TEXT,
     position_description TEXT,
     difficulty_level ENUM('easy', 'medium', 'hard') DEFAULT 'medium',

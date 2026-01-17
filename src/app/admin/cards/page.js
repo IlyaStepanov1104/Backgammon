@@ -437,6 +437,8 @@ function CardForm({card, onSubmit, onCancel}) {
         title: card?.title || '',
         description: card?.description || '',
         image_url: card?.image_url || '',
+        image_url_2: card?.image_url_2 || '',
+        image_url_3: card?.image_url_3 || '',
         correct_moves: card?.correct_moves || '',
         position_description: card?.position_description || '',
         difficulty_level: card?.difficulty_level || 'medium',
@@ -497,10 +499,12 @@ function CardForm({card, onSubmit, onCancel}) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Если есть файл изображения, загружаем его
-        if (formData.image_file) {
+        // Если есть файлы изображений, загружаем их
+        if (formData.image_file || formData.image_file_2 || formData.image_file_3) {
             const formDataToSend = new FormData();
-            formDataToSend.append('image', formData.image_file);
+            if (formData.image_file) formDataToSend.append('image', formData.image_file);
+            if (formData.image_file_2) formDataToSend.append('image_2', formData.image_file_2);
+            if (formData.image_file_3) formDataToSend.append('image_3', formData.image_file_3);
             formDataToSend.append('title', formData.title);
             formDataToSend.append('description', formData.description);
             formDataToSend.append('correct_moves', formData.correct_moves);
@@ -514,7 +518,7 @@ function CardForm({card, onSubmit, onCancel}) {
 
             onSubmit(formDataToSend);
         } else {
-            // Если файла нет, отправляем обычные данные
+            // Если файлов нет, отправляем обычные данные
             const submitData = card ? {...formData, id: card.id} : formData;
             onSubmit(submitData);
         }
@@ -595,6 +599,56 @@ function CardForm({card, onSubmit, onCancel}) {
                                     <p className="text-sm text-gray-500">Текущее изображение:</p>
                                     <img
                                         src={card.image_url}
+                                        alt="Текущее изображение"
+                                        className="w-32 h-32 object-cover rounded mt-1"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Ход в партии:</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                required={!card}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        setFormData(prev => ({...prev, image_file_2: file}));
+                                    }
+                                }}
+                            />
+                            {card?.image_url_2 && (
+                                <div className="mt-2">
+                                    <p className="text-sm text-gray-500">Текущее изображение:</p>
+                                    <img
+                                        src={card.image_url_2}
+                                        alt="Текущее изображение"
+                                        className="w-32 h-32 object-cover rounded mt-1"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Лучший ход:</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                required={!card}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        setFormData(prev => ({...prev, image_file_3: file}));
+                                    }
+                                }}
+                            />
+                            {card?.image_url_3 && (
+                                <div className="mt-2">
+                                    <p className="text-sm text-gray-500">Текущее изображение:</p>
+                                    <img
+                                        src={card.image_url_3}
                                         alt="Текущее изображение"
                                         className="w-32 h-32 object-cover rounded mt-1"
                                     />

@@ -5,7 +5,7 @@ const { query, testConnection } = require('./config');
 async function runMigrations() {
   try {
     console.log('Starting database migration...');
-    
+
     // Проверяем соединение
     const isConnected = await testConnection();
     if (!isConnected) {
@@ -16,7 +16,7 @@ async function runMigrations() {
     // Читаем схему базы данных
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
-    
+
     // Разбиваем схему на отдельные запросы
     const queries = schema
       .split(';')
@@ -40,8 +40,37 @@ async function runMigrations() {
       }
     }
 
+    // Выполняем дополнительные миграции
+    const migrationFiles = fs.readdirSync(__dirname)
+      .filter(file => file.startsWith('migrate-') && file.endsWith('.sql') && file !== 'migrate.js');
+
+    for (const migrationFile of migrationFiles) {
+      console.log(`Executing migration: ${migrationFile}`);
+      const migrationPath = path.join(__dirname, migrationFile);
+      const migrationSql = fs.readFileSync(migrationPath, 'utf8');
+
+      const migrationQueries = migrationSql
+        .split(';')
+        .map(query => query.trim())
+        .filter(query => query.length > 0);
+
+      for (let i = 0; i < migrationQueries.length; i++) {
+        const queryText = migrationQueries[i];
+        if (queryText.trim()) {
+          try {
+            console.log(`Executing migration query ${i + 1}/${migrationQueries.length} in ${migrationFile}...`);
+            await query(queryText);
+            console.log(`Migration query ${i + 1} executed successfully`);
+          } catch (error) {
+            console.error(`Error executing migration query ${i + 1} in ${migrationFile}:`, error.message);
+            // Продолжаем выполнение других запросов
+          }
+        }
+      }
+    }
+
     console.log('Database migration completed successfully!');
-    
+
     // Проверяем созданные таблицы
     const tables = await query('SHOW TABLES');
     console.log('Created tables:', tables.map(t => Object.values(t)[0]));
