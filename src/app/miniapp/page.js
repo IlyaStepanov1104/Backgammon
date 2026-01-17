@@ -1,10 +1,10 @@
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useState, useEffect, Suspense} from 'react';
 import {useSearchParams} from 'next/navigation';
 import CardListModal from '../../components/CardListModal';
 
-export default function Miniapp() {
+const MiniappContent = () => {
     const searchParams = useSearchParams();
     const telegramId = searchParams.get('user');
 
@@ -521,5 +521,17 @@ export default function Miniapp() {
                 title="Нерешенные карточки"
             />
         </div>
+    );
+}
+
+export default function Miniapp() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-xl">Загрузка...</div>
+            </div>
+        }>
+            <MiniappContent />
+        </Suspense>
     );
 }

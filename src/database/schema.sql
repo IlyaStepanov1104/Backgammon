@@ -135,6 +135,26 @@ CREATE TABLE admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Таблица групп пользователей
+CREATE TABLE user_groups (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Таблица членов групп
+CREATE TABLE user_group_members (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    group_id INT NOT NULL,
+    user_id INT NOT NULL,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (group_id) REFERENCES user_groups(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_group_user (group_id, user_id)
+);
+
 -- Индексы для оптимизации
 CREATE INDEX idx_users_telegram_id ON users(telegram_id);
 CREATE INDEX idx_user_card_access_user_id ON user_card_access(user_id);
@@ -143,6 +163,8 @@ CREATE INDEX idx_user_favorites_user_id ON user_favorites(user_id);
 CREATE INDEX idx_user_responses_user_id ON user_responses(user_id);
 CREATE INDEX idx_promo_codes_code ON promo_codes(code);
 CREATE INDEX idx_package_purchases_user_id ON package_purchases(user_id);
+CREATE INDEX idx_user_group_members_group_id ON user_group_members(group_id);
+CREATE INDEX idx_user_group_members_user_id ON user_group_members(user_id);
 
 -- Вставка администратора по умолчанию (пароль: admin123)
 INSERT INTO admins (username, password_hash) VALUES ('admin', '$2a$10$rQZ8K9vJ8K9vJ8K9vJ8K9O');

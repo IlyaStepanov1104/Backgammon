@@ -238,6 +238,49 @@ export default function AdminPanel() {
                             </div>
                         </div>
 
+                        {/* Группы пользователей */}
+                        <div className="bg-white overflow-hidden shadow rounded-lg">
+                            <div className="p-5">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <div
+                                            className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                                                  className="w-5 h-5 text-white"
+                                                  viewBox="0 0 24 24">
+                                                <path stroke="currentColor" strokeLinecap="round"
+                                                       strokeLinejoin="round"
+                                                       strokeWidth="2"
+                                                       d="M17 20h5v-2a3 3 0 0 0-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 0 1 5.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 0 1 9.288 0M15 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm6 3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM7 10a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div className="ml-5 w-0 flex-1">
+                                        <dl>
+                                            <dt className="text-sm font-medium text-gray-500 truncate">
+                                                Группы пользователей
+                                            </dt>
+                                            <dd>
+                                                <div className="text-lg font-medium text-gray-900">
+                                                    Объединение и управление
+                                                </div>
+                                            </dd>
+                                        </dl>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-gray-50 px-5 py-3">
+                                <div className="text-sm">
+                                    <button
+                                        onClick={() => router.push('/admin/groups')}
+                                        className="font-medium text-yellow-600 hover:text-yellow-500"
+                                    >
+                                        Перейти к группам
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Промокоды */}
                         <div className="bg-white overflow-hidden shadow rounded-lg">
                             <div className="p-5">

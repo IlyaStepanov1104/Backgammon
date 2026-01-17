@@ -69,9 +69,6 @@ DB_PORT=3306
 
 # Telegram Bot
 TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/telegram/webhook
-
-
 
 # Admin credentials
 ADMIN_USERNAME=admin
@@ -197,7 +194,7 @@ npm start
 
 1. Настройте SSL сертификат
 2. Настройте домен
-3. Обновите `TELEGRAM_WEBHOOK_URL` в `.env`
+3. Обновите `TELEGRAM_BOT_TOKEN` в `.env`
 4. Настройте вебхук для бота
 5. Запустите с PM2 или аналогичным менеджером процессов
 

@@ -14,7 +14,6 @@ export default function UsersPage() {
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [hasAccess, setHasAccess] = useState('');
-    const [loading, setLoading] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [showAccessModal, setShowAccessModal] = useState(false);
     const [selectedCards, setSelectedCards] = useState([]);
@@ -36,7 +35,6 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
         try {
-            setLoading(true);
             const params = new URLSearchParams({
                 page: pagination.page,
                 limit: pagination.limit,
@@ -54,8 +52,6 @@ export default function UsersPage() {
             }
         } catch (error) {
             console.error('Error fetching users:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -166,11 +162,6 @@ export default function UsersPage() {
         }
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Бессрочно';
-        return new Date(dateString).toLocaleDateString('ru-RU');
-    };
-
     const formatDateTime = (dateString) => {
         if (!dateString) return '-';
         return new Date(dateString).toLocaleString('ru-RU');
@@ -264,6 +255,9 @@ export default function UsersPage() {
                                         Статистика
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Группы
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Дата регистрации
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -302,6 +296,10 @@ export default function UsersPage() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             <div className="text-green-600">✅ {user.solved_cards || 0}</div>
                                             <div className="text-red-600">❓ {user.unsolved_cards || 0}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {/* Здесь будут группы пользователя */}
+                                            Группы
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                             {formatDateTime(user.created_at)}
