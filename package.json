@@ -15,15 +15,15 @@
     "setup": "node setup.js"
   },
   "dependencies": {
-    "axios": "^1.6.0",
+    "axios": "1.12.0",
     "classnames": "^2.5.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "formidable": "^3.5.1",
     "moment": "^2.29.4",
-    "multer": "^1.4.5-lts.1",
+    "multer": "2.0.2",
     "mysql2": "^3.6.5",
-    "next": "15.5.0",
+    "next": "16.1.0-canary.19",
     "node-telegram-bot-api": "^0.64.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
