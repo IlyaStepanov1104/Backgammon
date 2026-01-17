@@ -9,7 +9,8 @@ export async function GET(request) {
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
     const favorites = searchParams.get('favorites') === 'true';
-    
+    const solved = searchParams.get('solved'); // 'true' or 'false'
+
     if (!telegramId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
@@ -25,11 +26,11 @@ export async function GET(request) {
     const userId = userResult[0].id;
     
     let sql, params;
-    
+
     if (favorites) {
       // Получаем избранные карточки
       sql = `
-        SELECT c.*, 
+        SELECT c.*,
                uf.added_at as favorite_added_at,
                ur.is_correct,
                ur.response_time
@@ -37,9 +38,16 @@ export async function GET(request) {
         JOIN user_favorites uf ON c.id = uf.card_id
         LEFT JOIN user_responses ur ON c.id = ur.card_id AND ur.user_id = ?
         WHERE uf.user_id = ?
-        ORDER BY uf.added_at DESC
       `;
       params = [userId, userId];
+
+      if (solved === 'true') {
+        sql += ' AND ur.is_correct = 1';
+      } else if (solved === 'false') {
+        sql += ' AND ur.is_correct IS NULL';
+      }
+
+      sql += ' ORDER BY uf.added_at DESC';
     } else {
       // Получаем доступные карточки
       sql = `
@@ -49,7 +57,7 @@ export async function GET(request) {
                 SELECT *,
                        ROW_NUMBER() OVER (PARTITION BY card_id ORDER BY response_time DESC) AS rn
                 FROM user_responses
-                WHERE user_id = ? 
+                WHERE user_id = ?
             ) ur
             WHERE rn = 1
         )
@@ -61,29 +69,92 @@ export async function GET(request) {
                lr.response_time
         FROM cards c
         JOIN user_card_access uca ON c.id = uca.card_id
-        LEFT JOIN user_favorites uf ON c.id = uf.card_id AND uf.user_id = ? 
+        LEFT JOIN user_favorites uf ON c.id = uf.card_id AND uf.user_id = ?
         LEFT JOIN latest_responses lr ON c.id = lr.card_id
-        WHERE uca.user_id = ? AND uca.is_active = 1 
+        WHERE uca.user_id = ? AND uca.is_active = 1
           AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
-        ORDER BY uca.access_granted_at DESC`;
+      `;
       params = [userId, userId, userId];
+
+      if (solved === 'true') {
+        sql += ' AND lr.is_correct = 1';
+      } else if (solved === 'false') {
+        sql += ' AND lr.is_correct IS NULL';
+      }
+
+      sql += ' ORDER BY uca.access_granted_at DESC';
     }
     const cards = await queryWithPagination(sql, params, limit, (page - 1) * limit);
     
     // Получаем общее количество карточек
     let countSql, countParams;
-    
+
     if (favorites) {
-      countSql = 'SELECT COUNT(*) as total FROM user_favorites WHERE user_id = ?';
+      if (solved === 'true') {
+        countSql = `
+          SELECT COUNT(*) as total
+          FROM user_favorites uf
+          JOIN user_responses ur ON uf.card_id = ur.card_id AND ur.user_id = uf.user_id
+          WHERE uf.user_id = ? AND ur.is_correct = 1
+        `;
+      } else if (solved === 'false') {
+        countSql = `
+          SELECT COUNT(*) as total
+          FROM user_favorites uf
+          LEFT JOIN user_responses ur ON uf.card_id = ur.card_id AND ur.user_id = uf.user_id
+          WHERE uf.user_id = ? AND ur.is_correct IS NULL
+        `;
+      } else {
+        countSql = 'SELECT COUNT(*) as total FROM user_favorites WHERE user_id = ?';
+      }
       countParams = [userId];
     } else {
-      countSql = `
-        SELECT COUNT(*) as total 
-        FROM user_card_access uca 
-        WHERE uca.user_id = ? AND uca.is_active = 1
-        AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
-      `;
-      countParams = [userId];
+      if (solved === 'true') {
+        countSql = `
+          SELECT COUNT(*) as total
+          FROM user_card_access uca
+          JOIN (
+            SELECT card_id, is_correct
+            FROM user_responses
+            WHERE user_id = ? AND is_correct = 1
+              AND response_time = (
+                SELECT MAX(response_time)
+                FROM user_responses
+                WHERE card_id = user_responses.card_id AND user_id = user_responses.user_id
+              )
+          ) lr ON uca.card_id = lr.card_id
+          WHERE uca.user_id = ? AND uca.is_active = 1
+          AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
+        `;
+        countParams = [userId, userId];
+      } else if (solved === 'false') {
+        countSql = `
+          SELECT COUNT(*) as total
+          FROM user_card_access uca
+          LEFT JOIN (
+            SELECT card_id, is_correct
+            FROM user_responses
+            WHERE user_id = ? AND is_correct IS NOT NULL
+              AND response_time = (
+                SELECT MAX(response_time)
+                FROM user_responses
+                WHERE card_id = user_responses.card_id AND user_id = user_responses.user_id
+              )
+          ) lr ON uca.card_id = lr.card_id
+          WHERE uca.user_id = ? AND uca.is_active = 1
+          AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
+          AND lr.card_id IS NULL
+        `;
+        countParams = [userId, userId];
+      } else {
+        countSql = `
+          SELECT COUNT(*) as total
+          FROM user_card_access uca
+          WHERE uca.user_id = ? AND uca.is_active = 1
+          AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
+        `;
+        countParams = [userId];
+      }
     }
     
     const countResult = await query(countSql, countParams);
