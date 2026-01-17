@@ -202,7 +202,7 @@ export default function RichTextEditor({ value = '', onChange, placeholder = '',
         onInput={handleInput}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        className={`px-3 py-2 outline-none ${
+        className={`whitespace-pre-wrap px-3 py-2 outline-none ${
           isFocused ? 'ring-2 ring-blue-500' : ''
         }`}
         style={{

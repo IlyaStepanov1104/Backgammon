@@ -16,7 +16,6 @@ export default function CardsManagement() {
     const [difficultyFilter, setDifficultyFilter] = useState('');
     const [tagFilter, setTagFilter] = useState([]);
     const [showTagSelectorFilter, setShowTagSelectorFilter] = useState(false);
-    const [tagFilterNames, setTagFilterNames] = useState({});
     const router = useRouter();
 
     useEffect(() => {
@@ -55,26 +54,6 @@ export default function CardsManagement() {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        (async () => {
-            if (tagFilter.length > 0) {
-                try {
-                    const response = await fetch('/api/admin/tags');
-                    if (response.ok) {
-                        const data = await response.json();
-                        const nameMap = {};
-                        data.tags.forEach(tag => {
-                            nameMap[tag.id] = tag.name;
-                        });
-                        setTagFilterNames(nameMap);
-                    }
-                } catch {
-                }
-            }
-        })();
-    }, [tagFilter]);
-
 
     const handleCreateCard = async (cardData) => {
         try {
@@ -568,6 +547,23 @@ function CardForm({card, onSubmit, onCancel}) {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Описание</label>
+                            <div className="mb-2">
+                                <input
+                                    type="file"
+                                    accept=".txt"
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onload = (event) => {
+                                                setFormData(prev => ({...prev, description: event.target.result}));
+                                            };
+                                            reader.readAsText(file);
+                                        }
+                                    }}
+                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                />
+                            </div>
                             <RichTextEditor
                                 value={formData.description}
                                 onChange={(html) => setFormData(prev => ({...prev, description: html}))}
@@ -575,7 +571,8 @@ function CardForm({card, onSubmit, onCancel}) {
                                 rows={5}
                             />
                             <p className="mt-1 text-xs text-gray-500">
-                                Выделите текст и используйте кнопки форматирования для изменения стиля
+                                Выделите текст и используйте кнопки форматирования для изменения стиля, или загрузите
+                                текст из .txt файла
                             </p>
                         </div>
 
