@@ -1,6 +1,6 @@
 'use client';
 
-import {useState, useEffect, Suspense} from 'react';
+import {useState, useEffect, useRef, Suspense} from 'react';
 import {useSearchParams} from 'next/navigation';
 import CardListModal from '../../components/CardListModal';
 
@@ -22,6 +22,8 @@ const MiniappContent = () => {
     const [showSolvedModal, setShowSolvedModal] = useState(false);
     const [showUnsolvedModal, setShowUnsolvedModal] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [showMenu, setShowMenu] = useState(false);
+    const menuRef = useRef(null);
 
     useEffect(() => {
         if (telegramId) {
@@ -35,6 +37,24 @@ const MiniappContent = () => {
     useEffect(() => {
         setUserResponse(cards[currentCardIndex]?.is_correct !== undefined && cards[currentCardIndex]?.is_correct !== -1 ? Boolean(cards[currentCardIndex].is_correct) : null);
     }, [cards[currentCardIndex]])
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setShowMenu(false);
+            }
+        };
+
+        if (showMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showMenu]);
 
     const fetchCards = async () => {
         try {
@@ -309,59 +329,67 @@ const MiniappContent = () => {
             <main className="max-w-4xl mx-auto py-6 px-4">
                 {/* Header with Favorites Button and List Button */}
                 <div className="flex justify-between items-center mb-4">
-                    <div className="flex gap-3">
+                    <div className="relative">
                         <button
-                            onClick={showFavorites ? switchToAllCards : switchToFavorites}
-                            disabled={!showFavorites && favorites.length === 0}
-                            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                                showFavorites
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                    : favorites.length === 0
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                            }`}
-                            title={favorites.length === 0 ? 'Добавьте карточки в избранное' : ''}
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-medium flex items-center gap-2"
                         >
-                            <span>⭐</span>
-                            <span>{showFavorites ? 'Все карточки' : `Избранное (${favorites.length})`}</span>
+                            <span>☰</span>
+                            <span>Меню</span>
                         </button>
-
-                        <button
-                            onClick={() => setShowSolvedModal(true)}
-                            disabled={solvedCards.length === 0}
-                            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                                solvedCards.length === 0
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-green-100 text-green-800 hover:bg-green-200'
-                            }`}
-                            title={solvedCards.length === 0 ? 'Решенных карточек пока нет' : ''}
-                        >
-                            <span>✅</span>
-                            <span>Решенные ({solvedCards.length})</span>
-                        </button>
-
-                        <button
-                            onClick={() => setShowUnsolvedModal(true)}
-                            disabled={unsolvedCards.length === 0}
-                            className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${
-                                unsolvedCards.length === 0
-                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                            }`}
-                            title={unsolvedCards.length === 0 ? 'Нерешенных карточек пока нет' : ''}
-                        >
-                            <span>❓</span>
-                            <span>Нерешенные ({unsolvedCards.length})</span>
-                        </button>
-
-                        <button
-                            onClick={() => setShowCardListModal(true)}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-medium flex items-center gap-2"
-                            title="Показать список всех карточек"
-                        >
-                            <span>📋</span>
-                            <span>Список</span>
-                        </button>
+                        {showMenu && (
+                            <div ref={menuRef} className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-max">
+                                <button
+                                    onClick={() => { showFavorites ? switchToAllCards() : switchToFavorites(); setShowMenu(false); }}
+                                    disabled={!showFavorites && favorites.length === 0}
+                                    className={`w-full text-left px-4 py-2 rounded-t-lg font-medium flex items-center gap-2 ${
+                                        showFavorites
+                                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                            : favorites.length === 0
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                    }`}
+                                    title={favorites.length === 0 ? 'Добавьте карточки в избранное' : ''}
+                                >
+                                    <span>⭐</span>
+                                    <span>{showFavorites ? 'Все карточки' : `Избранное (${favorites.length})`}</span>
+                                </button>
+                                <button
+                                    onClick={() => { setShowSolvedModal(true); setShowMenu(false); }}
+                                    disabled={solvedCards.length === 0}
+                                    className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
+                                        solvedCards.length === 0
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    }`}
+                                    title={solvedCards.length === 0 ? 'Решенных карточек пока нет' : ''}
+                                >
+                                    <span>✅</span>
+                                    <span>Решенные ({solvedCards.length})</span>
+                                </button>
+                                <button
+                                    onClick={() => { setShowUnsolvedModal(true); setShowMenu(false); }}
+                                    disabled={unsolvedCards.length === 0}
+                                    className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
+                                        unsolvedCards.length === 0
+                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                    }`}
+                                    title={unsolvedCards.length === 0 ? 'Нерешенных карточек пока нет' : ''}
+                                >
+                                    <span>❓</span>
+                                    <span>Нерешенные ({unsolvedCards.length})</span>
+                                </button>
+                                <button
+                                    onClick={() => { setShowCardListModal(true); setShowMenu(false); }}
+                                    className="w-full text-left px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-b-lg font-medium flex items-center gap-2"
+                                    title="Показать список всех карточек"
+                                >
+                                    <span>📋</span>
+                                    <span>Список</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="text-center">
                         <span className="text-sm text-gray-600">

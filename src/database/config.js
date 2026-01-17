@@ -8,7 +8,7 @@ const dbConfig = {
   database: process.env.DB_NAME || 'backgammon_cards',
   port: process.env.DB_PORT || 3306,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 1,
   queueLimit: 0,
   charset: 'utf8mb4'
 };
