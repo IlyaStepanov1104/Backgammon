@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {query, queryWithPagination} from '../../../../database/config';
+import { put } from '@vercel/blob';
 
 // Простая проверка авторизации
 function checkAuth(request) {
@@ -139,50 +140,38 @@ export async function POST(request) {
             position_description = formData.get('position_description');
             difficulty_level = formData.get('difficulty_level');
 
-            // Обрабатываем загруженные файлы
-            const fs = require('fs');
-            const path = require('path');
-            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-
-            // Создаем папку uploads если её нет
-            if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, {recursive: true});
-            }
-
             // Первое изображение
-            const imageFile = formData.get('image');
-            if (imageFile) {
-                const fileName = `${Date.now()}_${imageFile.name}`;
-                const filePath = `/uploads/${fileName}`;
+            const file = formData.get('image');
+            if (file) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file.name}`,
+                    file,
+                    { access: 'public' }
+                );
 
-                const fileBuffer = Buffer.from(await imageFile.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url = filePath;
+                image_url = blob.url;
             }
 
-            // Второе изображение
-            const imageFile2 = formData.get('image_2');
-            if (imageFile2) {
-                const fileName = `${Date.now()}_2_${imageFile2.name}`;
-                const filePath = `/uploads/${fileName}`;
+            const file2 = formData.get('image_2');
+            if (file2) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file2.name}`,
+                    file2,
+                    { access: 'public' }
+                );
 
-                const fileBuffer = Buffer.from(await imageFile2.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url_2 = filePath;
+                image_url_2 = blob.url;
             }
 
-            // Третье изображение
-            const imageFile3 = formData.get('image_3');
-            if (imageFile3) {
-                const fileName = `${Date.now()}_3_${imageFile3.name}`;
-                const filePath = `/uploads/${fileName}`;
+            const file3 = formData.get('image_3');
+            if (file3) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file3.name}`,
+                    file3,
+                    { access: 'public' }
+                );
 
-                const fileBuffer = Buffer.from(await imageFile3.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url_3 = filePath;
+                image_url_3 = blob.url;
             }
         } else {
             // Обычный JSON запрос
@@ -255,49 +244,37 @@ export async function PUT(request) {
             difficulty_level = formData.get('difficulty_level');
 
             // Обрабатываем загруженные файлы
-            const fs = require('fs');
-            const path = require('path');
-            const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+            const file = formData.get('image');
+            if (file) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file.name}`,
+                    file,
+                    { access: 'public' }
+                );
 
-            // Создаем папку uploads если её нет
-            if (!fs.existsSync(uploadsDir)) {
-                fs.mkdirSync(uploadsDir, {recursive: true});
+                image_url = blob.url;
             }
 
-            // Первое изображение
-            const imageFile = formData.get('image');
-            if (imageFile) {
-                const fileName = `${Date.now()}_${imageFile.name}`;
-                const filePath = `/uploads/${fileName}`;
+            const file2 = formData.get('image_2');
+            if (file2) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file2.name}`,
+                    file2,
+                    { access: 'public' }
+                );
 
-                const fileBuffer = Buffer.from(await imageFile.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url = filePath;
+                image_url_2 = blob.url;
             }
 
-            // Второе изображение
-            const imageFile2 = formData.get('image_2');
-            if (imageFile2) {
-                const fileName = `${Date.now()}_2_${imageFile2.name}`;
-                const filePath = `/uploads/${fileName}`;
+            const file3 = formData.get('image_3');
+            if (file3) {
+                const blob = await put(
+                    `cards/${Date.now()}_${file3.name}`,
+                    file3,
+                    { access: 'public' }
+                );
 
-                const fileBuffer = Buffer.from(await imageFile2.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url_2 = filePath;
-            }
-
-            // Третье изображение
-            const imageFile3 = formData.get('image_3');
-            if (imageFile3) {
-                const fileName = `${Date.now()}_3_${imageFile3.name}`;
-                const filePath = `/uploads/${fileName}`;
-
-                const fileBuffer = Buffer.from(await imageFile3.arrayBuffer());
-                fs.writeFileSync(path.join(uploadsDir, fileName), fileBuffer);
-
-                image_url_3 = filePath;
+                image_url_3 = blob.url;
             }
         } else {
             // Обычный JSON запрос
