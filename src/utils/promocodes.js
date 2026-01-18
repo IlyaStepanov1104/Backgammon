@@ -12,7 +12,7 @@
 export function generatePromocode(options = {}) {
   const {
     prefix = 'PROMO',
-    length = 8,
+    length = 12,
     includeNumbers = true,
     includeLetters = true
   } = options;
