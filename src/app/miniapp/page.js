@@ -35,7 +35,7 @@ const MiniappContent = () => {
     }, [telegramId]);
 
     useEffect(() => {
-        setUserResponse(cards[currentCardIndex]?.is_correct !== undefined && cards[currentCardIndex]?.is_correct !== -1 ? Boolean(cards[currentCardIndex].is_correct) : null);
+        setUserResponse(cards[currentCardIndex]?.response_status === 'correct' ? true : cards[currentCardIndex]?.response_status === 'incorrect' ? false : null);
     }, [cards[currentCardIndex]])
 
     useEffect(() => {

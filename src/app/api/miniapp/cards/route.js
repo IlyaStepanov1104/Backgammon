@@ -32,7 +32,7 @@ export async function GET(request) {
       sql = `
         SELECT c.*,
                uf.added_at as favorite_added_at,
-               ur.is_correct,
+               ur.response_status,
                ur.response_time
         FROM cards c
         JOIN user_favorites uf ON c.id = uf.card_id
@@ -42,9 +42,9 @@ export async function GET(request) {
       params = [userId, userId];
 
       if (solved === 'true') {
-        sql += ' AND ur.is_correct = 1';
+        sql += ' AND ur.response_status = \'correct\'';
       } else if (solved === 'false') {
-        sql += ' AND ur.is_correct IS NULL';
+        sql += ' AND ur.response_status = \'incorrect\'';
       }
 
       sql += ' ORDER BY uf.added_at DESC';
@@ -65,7 +65,7 @@ export async function GET(request) {
                uca.access_granted_at,
                uca.expires_at,
                uf.card_id AS is_favorite,
-               lr.is_correct,
+               lr.response_status,
                lr.response_time
         FROM cards c
         JOIN user_card_access uca ON c.id = uca.card_id
@@ -77,9 +77,9 @@ export async function GET(request) {
       params = [userId, userId, userId];
 
       if (solved === 'true') {
-        sql += ' AND lr.is_correct = 1';
+        sql += ' AND lr.response_status = \'correct\'';
       } else if (solved === 'false') {
-        sql += ' AND lr.is_correct IS NULL';
+        sql += ' AND lr.response_status = \'incorrect\'';
       }
 
       sql += ' ORDER BY uca.access_granted_at DESC';
@@ -95,14 +95,14 @@ export async function GET(request) {
           SELECT COUNT(*) as total
           FROM user_favorites uf
           JOIN user_responses ur ON uf.card_id = ur.card_id AND ur.user_id = uf.user_id
-          WHERE uf.user_id = ? AND ur.is_correct = 1
+          WHERE uf.user_id = ? AND ur.response_status = 'correct'
         `;
       } else if (solved === 'false') {
         countSql = `
           SELECT COUNT(*) as total
           FROM user_favorites uf
           LEFT JOIN user_responses ur ON uf.card_id = ur.card_id AND ur.user_id = uf.user_id
-          WHERE uf.user_id = ? AND ur.is_correct IS NULL
+          WHERE uf.user_id = ? AND ur.response_status = 'incorrect'
         `;
       } else {
         countSql = 'SELECT COUNT(*) as total FROM user_favorites WHERE user_id = ?';
@@ -114,9 +114,9 @@ export async function GET(request) {
           SELECT COUNT(*) as total
           FROM user_card_access uca
           JOIN (
-            SELECT card_id, is_correct
+            SELECT card_id, response_status
             FROM user_responses
-            WHERE user_id = ? AND is_correct = 1
+            WHERE user_id = ? AND response_status = 'correct'
               AND response_time = (
                 SELECT MAX(response_time)
                 FROM user_responses
@@ -132,9 +132,9 @@ export async function GET(request) {
           SELECT COUNT(*) as total
           FROM user_card_access uca
           LEFT JOIN (
-            SELECT card_id, is_correct
+            SELECT card_id, response_status
             FROM user_responses
-            WHERE user_id = ? AND is_correct IS NOT NULL
+            WHERE user_id = ? AND response_status = 'incorrect'
               AND response_time = (
                 SELECT MAX(response_time)
                 FROM user_responses
@@ -197,14 +197,14 @@ export async function POST(request) {
     
     // Сохраняем ответ пользователя
     const sql = `
-      INSERT INTO user_responses (user_id, card_id, is_correct) 
+      INSERT INTO user_responses (user_id, card_id, response_status) 
       VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE 
-        is_correct = VALUES(is_correct),
+      ON DUPLICATE KEY UPDATE
+        response_status = VALUES(response_status),
         response_time = CURRENT_TIMESTAMP
     `;
     
-    await query(sql, [userId, cardId, isCorrect]);
+    await query(sql, [userId, cardId, isCorrect ? 'correct' : 'incorrect']);
     
     return NextResponse.json({ 
       success: true, 

@@ -23,14 +23,14 @@ export async function GET(request) {
       SELECT u.*,
              COUNT(DISTINCT uca.card_id) as accessible_cards,
              COUNT(DISTINCT uf.card_id) as favorite_cards,
-             COUNT(DISTINCT CASE WHEN ur.is_correct = 1 THEN uca.card_id END) as solved_cards,
-             COUNT(DISTINCT CASE WHEN ur.is_correct IS NULL THEN uca.card_id END) as unsolved_cards,
+             COUNT(DISTINCT CASE WHEN ur.response_status = 'correct' THEN uca.card_id END) as solved_cards,
+             COUNT(DISTINCT CASE WHEN ur.response_status = 'incorrect' THEN uca.card_id END) as unsolved_cards,
              MAX(uca.access_granted_at) as last_access_granted
       FROM users u
       LEFT JOIN user_card_access uca ON u.id = uca.user_id AND uca.is_active = 1 AND (uca.expires_at IS NULL OR uca.expires_at > NOW())
       LEFT JOIN user_favorites uf ON u.id = uf.user_id
       LEFT JOIN (
-        SELECT ur.user_id, ur.card_id, ur.is_correct
+        SELECT ur.user_id, ur.card_id, ur.response_status
         FROM user_responses ur
         WHERE ur.response_time = (
           SELECT MAX(ur2.response_time)
