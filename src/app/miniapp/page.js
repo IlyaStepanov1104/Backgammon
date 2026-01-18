@@ -413,28 +413,6 @@ const MiniappContent = () => {
 
                             return (
                                 <div className="relative">
-                                    {/* Navigation Arrows */}
-                                    {images.length > 1 && (
-                                        <>
-                                            <button
-                                                onClick={prevImage}
-                                                disabled={currentImageIndex === 0}
-                                                className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
-                                                style={{ fontSize: '20px' }}
-                                            >
-                                                ‹
-                                            </button>
-                                            <button
-                                                onClick={nextImage}
-                                                disabled={currentImageIndex === images.length - 1}
-                                                className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
-                                                style={{ fontSize: '20px' }}
-                                            >
-                                                ›
-                                            </button>
-                                        </>
-                                    )}
-
                                     {/* Image */}
                                     <img
                                         src={currentImage.url}
@@ -443,7 +421,27 @@ const MiniappContent = () => {
                                     />
 
                                     {/* Caption */}
-                                    <div className="text-center py-2">
+                                    <div className="text-center py-2 relative">
+                                        {images.length > 1 && (
+                                            <>
+                                                <button
+                                                    onClick={prevImage}
+                                                    disabled={currentImageIndex === 0}
+                                                    className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
+                                                    style={{ fontSize: '20px' }}
+                                                >
+                                                    ‹
+                                                </button>
+                                                <button
+                                                    onClick={nextImage}
+                                                    disabled={currentImageIndex === images.length - 1}
+                                                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
+                                                    style={{ fontSize: '20px' }}
+                                                >
+                                                    ›
+                                                </button>
+                                            </>
+                                        )}
                                         <span className="text-sm font-medium">
                                             {currentImage.caption}
                                         </span>
@@ -570,9 +568,9 @@ const MiniappContent = () => {
                 <div className="flex justify-between items-center mt-6">
                     <button
                         onClick={prevCard}
-                        disabled={currentCardIndex === 0 || userResponse === null}
+                        disabled={currentCardIndex === 0}
                         className={`px-6 py-3 rounded-lg font-medium ${
-                            currentCardIndex === 0 || userResponse === null
+                            currentCardIndex === 0
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}
@@ -586,9 +584,9 @@ const MiniappContent = () => {
                     </div>
                     <button
                         onClick={nextCard}
-                        disabled={currentCardIndex === currentCards.length - 1 || userResponse === null}
+                        disabled={currentCardIndex === currentCards.length - 1}
                         className={`px-6 py-3 rounded-lg font-medium ${
-                            currentCardIndex === currentCards.length - 1 || userResponse === null
+                            currentCardIndex === currentCards.length - 1
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : 'bg-blue-600 text-white hover:bg-blue-700'
                         }`}

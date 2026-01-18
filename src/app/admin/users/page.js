@@ -439,7 +439,7 @@ export default function UsersPage() {
                                                         <img
                                                             src={favorite.image_url}
                                                             alt={favorite.title}
-                                                            className="w-16 h-16 object-cover rounded"
+                                                            className="w-16 rounded"
                                                         />
                                                     )}
                                                     <div className="flex-1">

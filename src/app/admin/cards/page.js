@@ -600,7 +600,7 @@ function CardForm({card, onSubmit, onCancel}) {
                                     <img
                                         src={card.image_url}
                                         alt="Текущее изображение"
-                                        className="w-32 h-32 object-cover rounded mt-1"
+                                        className="w-32 rounded mt-1"
                                     />
                                 </div>
                             )}
@@ -625,7 +625,7 @@ function CardForm({card, onSubmit, onCancel}) {
                                     <img
                                         src={card.image_url_2}
                                         alt="Текущее изображение"
-                                        className="w-32 h-32 object-cover rounded mt-1"
+                                        className="w-32 rounded mt-1"
                                     />
                                 </div>
                             )}
@@ -650,7 +650,7 @@ function CardForm({card, onSubmit, onCancel}) {
                                     <img
                                         src={card.image_url_3}
                                         alt="Текущее изображение"
-                                        className="w-32 h-32 object-cover rounded mt-1"
+                                        className="w-32 rounded mt-1"
                                     />
                                 </div>
                             )}

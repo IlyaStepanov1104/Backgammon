@@ -42,7 +42,7 @@ export default function CardListModal({ isOpen, onClose, cards, onCardSelect, cu
                   <img
                     src={card.image_url}
                     alt={card.title}
-                    className="w-full h-full object-cover"
+                    className="w-full"
                   />
                 </div>
 
