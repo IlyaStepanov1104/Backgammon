@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '../../../../database/config';
+import { query } from '@/services/database';
 
 // POST - добавление карточки в избранное
 export async function POST(request) {

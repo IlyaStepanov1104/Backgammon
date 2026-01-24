@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query, queryWithPagination } from '@/database/config';
+import { query, queryWithPagination } from '@/services/database';
 // Простая проверка авторизации
 function checkAuth() {
   // В реальном проекте здесь можно добавить проверку сессии
@@ -104,7 +104,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'User ID and card IDs array are required' }, { status: 400 });
     }
     
-    const connection = await require('../../../../database/config').getConnection();
+    const connection = await require('@/services/database').getConnection();
     await connection.beginTransaction();
     
     try {
@@ -181,7 +181,7 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'User ID and cardIds array are required' }, { status: 400 });
     }
 
-    const connection = await require('../../../../database/config').getConnection();
+    const connection = await require('@/services/database').getConnection();
     await connection.beginTransaction();
 
     try {

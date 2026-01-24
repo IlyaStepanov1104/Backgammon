@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query, getConnection } from '@/database/config';
+import { query, getConnection } from '@/services/database';
 
 // Простая проверка авторизации
 function checkAuth() {

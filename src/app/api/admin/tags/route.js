@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query, queryWithPagination } from '../../../../database/config';
+import { query, queryWithPagination } from '@/services/database';
 
 // Простая проверка авторизации
 function checkAuth(request) {

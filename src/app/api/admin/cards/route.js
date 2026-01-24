@@ -1,6 +1,23 @@
 import {NextResponse} from 'next/server';
-import {query, queryWithPagination} from '../../../../database/config';
-import { put } from '@vercel/blob';
+import {query, queryWithPagination} from '../../../../services/database';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuid } from 'uuid';
+
+// Папка для загрузок
+const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'cards');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+async function saveFile(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const ext = file instanceof File ? path.extname(file.name) : '.bin';
+    const filename = `${uuid()}${ext}`;
+    const filepath = path.join(UPLOAD_DIR, filename);
+
+    fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
+
+    return `/uploads/cards/${filename}`;
+}
 
 // Простая проверка авторизации
 function checkAuth(request) {
@@ -143,35 +160,17 @@ export async function POST(request) {
             // Первое изображение
             const file = formData.get('image');
             if (file) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file.name}`,
-                    file,
-                    { access: 'public' }
-                );
-
-                image_url = blob.url;
+                image_url = await saveFile(file);
             }
 
             const file2 = formData.get('image_2');
             if (file2) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file2.name}`,
-                    file2,
-                    { access: 'public' }
-                );
-
-                image_url_2 = blob.url;
+                image_url_2 = await saveFile(file2);
             }
 
             const file3 = formData.get('image_3');
             if (file3) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file3.name}`,
-                    file3,
-                    { access: 'public' }
-                );
-
-                image_url_3 = blob.url;
+                image_url_3 = await saveFile(file3);
             }
         } else {
             // Обычный JSON запрос
@@ -246,35 +245,17 @@ export async function PUT(request) {
             // Обрабатываем загруженные файлы
             const file = formData.get('image');
             if (file) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file.name}`,
-                    file,
-                    { access: 'public' }
-                );
-
-                image_url = blob.url;
+                image_url = await saveFile(file);
             }
 
             const file2 = formData.get('image_2');
             if (file2) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file2.name}`,
-                    file2,
-                    { access: 'public' }
-                );
-
-                image_url_2 = blob.url;
+                image_url_2 = await saveFile(file2);
             }
 
             const file3 = formData.get('image_3');
             if (file3) {
-                const blob = await put(
-                    `cards/${Date.now()}_${file3.name}`,
-                    file3,
-                    { access: 'public' }
-                );
-
-                image_url_3 = blob.url;
+                image_url_3 = await saveFile(file3);
             }
         } else {
             // Обычный JSON запрос

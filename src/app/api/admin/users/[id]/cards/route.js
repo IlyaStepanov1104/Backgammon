@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/database/config';
+import { query } from '@/services/database';
 
 function checkAuth(request) {
     // Здесь можно сделать полноценную проверку авторизации

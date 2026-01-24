@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { testConnection, query } = require('./src/database/config');
+const { testConnection, query } = require('@/services/database');
 
 async function testDatabase() {
   console.log('🧪 Тестирование подключения к базе данных...');

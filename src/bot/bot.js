@@ -1,5 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-const { query } = require('../database/config');
+const { query } = require('@/services/database');
 require('dotenv').config();
 
 // Создаем бота с пуллингом
@@ -245,7 +245,7 @@ async function checkPromoCode(code, telegramId) {
     }
 
     // Подключение к БД для транзакции
-    const connection = await require('../database/config').getConnection();
+    const connection = await require('@/services/database').getConnection();
     await connection.beginTransaction();
 
     try {

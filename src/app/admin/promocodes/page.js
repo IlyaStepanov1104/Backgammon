@@ -8,7 +8,6 @@ import CardSelectorWithRange from '../../../components/CardSelectorWithRange';
 
 export default function PromocodesPage() {
     const [promocodes, setPromocodes] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingPromocode, setEditingPromocode] = useState(null);
     const [formData, setFormData] = useState({

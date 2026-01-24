@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query } from '../../../../database/config';
+import { query } from '@/services/database';
 
 export async function POST(req) {
   try {
@@ -204,7 +204,7 @@ async function checkPromoCode(code, telegramId) {
     const userId = userResult[0].id;
     
     // Начинаем транзакцию
-    const connection = await require('../../../../database/config').getConnection();
+    const connection = await require('@/services/database').getConnection();
     await connection.beginTransaction();
     
     try {
