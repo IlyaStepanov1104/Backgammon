@@ -2,6 +2,7 @@
 
 import {useState, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
+import Modal from '../../../components/Modal';
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState([]);
@@ -387,260 +388,272 @@ export default function GroupsPage() {
                     )}
 
                     {/* Модальное окно создания группы */}
-                    {showCreateModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                                <h3 className="text-lg font-semibold mb-4">Создать новую группу</h3>
-
-                                {error && (
-                                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-2">Название группы *</label>
-                                    <input
-                                        type="text"
-                                        value={newGroup.name}
-                                        onChange={(e) => setNewGroup(prev => ({...prev, name: e.target.value}))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Введите название группы"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-2">Описание</label>
-                                    <textarea
-                                        value={newGroup.description}
-                                        onChange={(e) => setNewGroup(prev => ({...prev, description: e.target.value}))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Введите описание группы"
-                                        rows={3}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            setShowCreateModal(false);
-                                            setNewGroup({name: '', description: ''});
-                                            setError('');
-                                        }}
-                                        className="px-4 py-2 border rounded"
-                                    >
-                                        Отмена
-                                    </button>
-                                    <button
-                                        onClick={handleCreateGroup}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                    >
-                                        Создать
-                                    </button>
-                                </div>
+                    <Modal
+                        isOpen={showCreateModal}
+                        onClose={() => {
+                            setShowCreateModal(false);
+                            setNewGroup({name: '', description: ''});
+                            setError('');
+                        }}
+                        title="Создать новую группу"
+                        maxWidth="sm:max-w-md"
+                        footer={
+                            <>
+                                <button
+                                    onClick={handleCreateGroup}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Создать
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        setNewGroup({name: '', description: ''});
+                                        setError('');
+                                    }}
+                                    className="px-4 py-2 border rounded"
+                                >
+                                    Отмена
+                                </button>
+                            </>
+                        }
+                    >
+                        {error && (
+                            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
                             </div>
+                        )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Название группы *</label>
+                            <input
+                                type="text"
+                                value={newGroup.name}
+                                onChange={(e) => setNewGroup(prev => ({...prev, name: e.target.value}))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Введите название группы"
+                                required
+                            />
                         </div>
-                    )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Описание</label>
+                            <textarea
+                                value={newGroup.description}
+                                onChange={(e) => setNewGroup(prev => ({...prev, description: e.target.value}))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Введите описание группы"
+                                rows={3}
+                            />
+                        </div>
+                    </Modal>
 
                     {/* Модальное окно редактирования группы */}
-                    {showEditModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                                <h3 className="text-lg font-semibold mb-4">Редактировать группу</h3>
-
-                                {error && (
-                                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-2">Название группы *</label>
-                                    <input
-                                        type="text"
-                                        value={editGroup.name}
-                                        onChange={(e) => setEditGroup(prev => ({...prev, name: e.target.value}))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Введите название группы"
-                                        required
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-2">Описание</label>
-                                    <textarea
-                                        value={editGroup.description}
-                                        onChange={(e) => setEditGroup(prev => ({...prev, description: e.target.value}))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Введите описание группы"
-                                        rows={3}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            setShowEditModal(false);
-                                            setEditGroup({id: '', name: '', description: ''});
-                                            setError('');
-                                        }}
-                                        className="px-4 py-2 border rounded"
-                                    >
-                                        Отмена
-                                    </button>
-                                    <button
-                                        onClick={handleEditGroup}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                    >
-                                        Сохранить
-                                    </button>
-                                </div>
+                    <Modal
+                        isOpen={showEditModal}
+                        onClose={() => {
+                            setShowEditModal(false);
+                            setEditGroup({id: '', name: '', description: ''});
+                            setError('');
+                        }}
+                        title="Редактировать группу"
+                        maxWidth="sm:max-w-md"
+                        footer={
+                            <>
+                                <button
+                                    onClick={handleEditGroup}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Сохранить
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditGroup({id: '', name: '', description: ''});
+                                        setError('');
+                                    }}
+                                    className="px-4 py-2 border rounded"
+                                >
+                                    Отмена
+                                </button>
+                            </>
+                        }
+                    >
+                        {error && (
+                            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
                             </div>
+                        )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Название группы *</label>
+                            <input
+                                type="text"
+                                value={editGroup.name}
+                                onChange={(e) => setEditGroup(prev => ({...prev, name: e.target.value}))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Введите название группы"
+                                required
+                            />
                         </div>
-                    )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Описание</label>
+                            <textarea
+                                value={editGroup.description}
+                                onChange={(e) => setEditGroup(prev => ({...prev, description: e.target.value}))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Введите описание группы"
+                                rows={3}
+                            />
+                        </div>
+                    </Modal>
 
                     {/* Модальное окно участников группы */}
-                    {showMembersModal && selectedGroup && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Участники группы "{selectedGroup.name}"
-                                </h3>
-
-                                {loadingMembers ? (
-                                    <div className="text-center py-8">Загрузка...</div>
-                                ) : groupMembers.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">
-                                        В группе нет участников
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {groupMembers.map((member) => (
-                                            <div
-                                                key={member.id}
-                                                className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <div>
-                                                        <div className="font-medium text-gray-900">
-                                                            {member.first_name} {member.last_name}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            @{member.username} • ID: {member.telegram_id}
-                                                        </div>
-                                                        <div className="text-xs text-gray-400">
-                                                            Добавлен: {formatDateTime(member.joined_at)}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleRemoveUserFromGroup(selectedGroup.id, member.id)}
-                                                    className="text-red-600 hover:text-red-900 px-3 py-2 rounded hover:bg-red-50"
-                                                    title="Удалить из группы"
-                                                >
-                                                    Удалить
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                <div className="flex justify-end mt-6 space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            fetchAvailableUsers(selectedGroup.id);
-                                            setShowAddUsersModal(true);
-                                        }}
-                                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                                    >
-                                        Добавить участников
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowMembersModal(false);
-                                            setSelectedGroup(null);
-                                            setGroupMembers([]);
-                                        }}
-                                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                                    >
-                                        Закрыть
-                                    </button>
-                                </div>
+                    <Modal
+                        isOpen={showMembersModal && !!selectedGroup}
+                        onClose={() => {
+                            setShowMembersModal(false);
+                            setSelectedGroup(null);
+                            setGroupMembers([]);
+                        }}
+                        title={`Участники группы "${selectedGroup?.name}"`}
+                        maxWidth="sm:max-w-4xl"
+                        footer={
+                            <>
+                                <button
+                                    onClick={() => {
+                                        fetchAvailableUsers(selectedGroup.id);
+                                        setShowAddUsersModal(true);
+                                    }}
+                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                >
+                                    Добавить участников
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowMembersModal(false);
+                                        setSelectedGroup(null);
+                                        setGroupMembers([]);
+                                    }}
+                                    className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                                >
+                                    Закрыть
+                                </button>
+                            </>
+                        }
+                    >
+                        {loadingMembers ? (
+                            <div className="text-center py-8">Загрузка...</div>
+                        ) : groupMembers.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                В группе нет участников
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="space-y-3">
+                                {groupMembers.map((member) => (
+                                    <div
+                                        key={member.id}
+                                        className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
+                                    >
+                                        <div className="flex items-center space-x-4">
+                                            <div>
+                                                <div className="font-medium text-gray-900">
+                                                    {member.first_name} {member.last_name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    @{member.username} • ID: {member.telegram_id}
+                                                </div>
+                                                <div className="text-xs text-gray-400">
+                                                    Добавлен: {formatDateTime(member.joined_at)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveUserFromGroup(selectedGroup.id, member.id)}
+                                            className="text-red-600 hover:text-red-900 px-3 py-2 rounded hover:bg-red-50"
+                                            title="Удалить из группы"
+                                        >
+                                            Удалить
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </Modal>
 
                     {/* Модальное окно добавления пользователей */}
-                    {showAddUsersModal && selectedGroup && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Добавить участников в группу "{selectedGroup.name}"
-                                </h3>
+                    <Modal
+                        isOpen={showAddUsersModal && !!selectedGroup}
+                        onClose={() => {
+                            setShowAddUsersModal(false);
+                            setSelectedUserIds([]);
+                            setError('');
+                        }}
+                        title={`Добавить участников в группу "${selectedGroup?.name}"`}
+                        maxWidth="sm:max-w-2xl"
+                        footer={
+                            <>
+                                <button
+                                    onClick={handleAddUsersToGroup}
+                                    disabled={selectedUserIds.length === 0}
+                                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    Добавить ({selectedUserIds.length})
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowAddUsersModal(false);
+                                        setSelectedUserIds([]);
+                                        setError('');
+                                    }}
+                                    className="px-4 py-2 border rounded"
+                                >
+                                    Отмена
+                                </button>
+                            </>
+                        }
+                    >
+                        {error && (
+                            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
+                            </div>
+                        )}
 
-                                {error && (
-                                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                                        {error}
-                                    </div>
+                        <div className="mb-4">
+                            <div className="max-h-60 overflow-y-auto border rounded p-4">
+                                {availableUsers.length === 0 ? (
+                                    <div className="text-center py-4 text-gray-500">Загрузка пользователей...</div>
+                                ) : (
+                                    availableUsers.map((user) => (
+                                        <label key={user.id} className={`flex items-center space-x-3 p-2 hover:bg-gray-50 rounded ${user.isInGroup ? 'bg-green-50' : ''}`}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUserIds.includes(user.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedUserIds(prev => [...prev, user.id]);
+                                                    } else {
+                                                        setSelectedUserIds(prev => prev.filter(id => id !== user.id));
+                                                    }
+                                                }}
+                                                className="rounded"
+                                                disabled={user.isInGroup}
+                                            />
+                                            <div>
+                                                <div className={`font-medium ${user.isInGroup ? 'text-green-700' : ''}`}>
+                                                    {user.first_name} {user.last_name} {user.isInGroup && '(уже в группе)'}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    @{user.username} • ID: {user.telegram_id}
+                                                </div>
+                                            </div>
+                                        </label>
+                                    ))
                                 )}
-
-                                <div className="mb-4">
-                                    <div className="max-h-60 overflow-y-auto border rounded p-4">
-                                        {availableUsers.length === 0 ? (
-                                            <div className="text-center py-4 text-gray-500">Загрузка пользователей...</div>
-                                        ) : (
-                                            availableUsers.map((user) => (
-                                                <label key={user.id} className={`flex items-center space-x-3 p-2 hover:bg-gray-50 rounded ${user.isInGroup ? 'bg-green-50' : ''}`}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedUserIds.includes(user.id)}
-                                                        onChange={(e) => {
-                                                            if (e.target.checked) {
-                                                                setSelectedUserIds(prev => [...prev, user.id]);
-                                                            } else {
-                                                                setSelectedUserIds(prev => prev.filter(id => id !== user.id));
-                                                            }
-                                                        }}
-                                                        className="rounded"
-                                                        disabled={user.isInGroup}
-                                                    />
-                                                    <div>
-                                                        <div className={`font-medium ${user.isInGroup ? 'text-green-700' : ''}`}>
-                                                            {user.first_name} {user.last_name} {user.isInGroup && '(уже в группе)'}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            @{user.username} • ID: {user.telegram_id}
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-end space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            setShowAddUsersModal(false);
-                                            setSelectedUserIds([]);
-                                            setError('');
-                                        }}
-                                        className="px-4 py-2 border rounded"
-                                    >
-                                        Отмена
-                                    </button>
-                                    <button
-                                        onClick={handleAddUsersToGroup}
-                                        disabled={selectedUserIds.length === 0}
-                                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                                    >
-                                        Добавить ({selectedUserIds.length})
-                                    </button>
-                                </div>
                             </div>
                         </div>
-                    )}
+                    </Modal>
                 </div>
             </main>
         </div>

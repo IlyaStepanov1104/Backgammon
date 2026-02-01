@@ -3,6 +3,7 @@
 import {useState, useEffect} from 'react';
 import {useRouter} from 'next/navigation';
 import CardSelectorWithRange from '../../../components/CardSelectorWithRange';
+import Modal from '../../../components/Modal';
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
@@ -356,81 +357,97 @@ export default function UsersPage() {
                     )}
 
                     {/* Модальное окно для предоставления доступа */}
-                    {showAccessModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Предоставить доступ пользователю {selectedUser?.first_name}
-                                </h3>
-
-                                {error && (
-                                    <div
-                                        className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                                        {error}
-                                    </div>
-                                )}
-
-                                <div className="mb-4">
-                                    <CardSelectorWithRange
-                                        selectedCardIds={selectedCards}
-                                        onSelectionChange={setSelectedCards}
-                                        label="Выберите карточки"
-                                        required={true}
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-2">Дата истечения
-                                        (необязательно):</label>
-                                    <input
-                                        type="datetime-local"
-                                        value={expiresAt}
-                                        onChange={(e) => setExpiresAt(e.target.value)}
-                                        className="w-full border p-2 rounded"
-                                    />
-                                </div>
-
-                                <div className="flex justify-end space-x-3">
-                                    <button
-                                        onClick={() => {
-                                            setShowAccessModal(false);
-                                            setError('');
-                                            setSelectedCards([]);
-                                            setExpiresAt('');
-                                        }}
-                                        className="px-4 py-2 border rounded"
-                                    >
-                                        Отмена
-                                    </button>
-                                    <button
-                                        onClick={handleGrantAccess}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                    >
-                                        Предоставить доступ
-                                    </button>
-                                </div>
+                    <Modal
+                        isOpen={showAccessModal}
+                        onClose={() => {
+                            setShowAccessModal(false);
+                            setError('');
+                            setSelectedCards([]);
+                            setExpiresAt('');
+                        }}
+                        title={`Предоставить доступ пользователю ${selectedUser?.first_name}`}
+                        maxWidth="sm:max-w-md"
+                        footer={
+                            <>
+                                <button
+                                    onClick={handleGrantAccess}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Предоставить доступ
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowAccessModal(false);
+                                        setError('');
+                                        setSelectedCards([]);
+                                        setExpiresAt('');
+                                    }}
+                                    className="px-4 py-2 border rounded"
+                                >
+                                    Отмена
+                                </button>
+                            </>
+                        }
+                    >
+                        {error && (
+                            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                                {error}
                             </div>
+                        )}
+
+                        <div className="mb-4">
+                            <CardSelectorWithRange
+                                selectedCardIds={selectedCards}
+                                onSelectionChange={setSelectedCards}
+                                label="Выберите карточки"
+                                required={true}
+                            />
                         </div>
-                    )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-2">Дата истечения (необязательно):</label>
+                            <input
+                                type="datetime-local"
+                                value={expiresAt}
+                                onChange={(e) => setExpiresAt(e.target.value)}
+                                className="w-full border p-2 rounded"
+                            />
+                        </div>
+                    </Modal>
 
                     {/* Модальное окно для просмотра избранных карточек */}
-                    {showFavoritesModal && selectedUser && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-                                <h3 className="text-lg font-semibold mb-4">
-                                    Избранные карточки пользователя {selectedUser?.first_name}
-                                </h3>
-
-                                {loadingFavorites ? (
-                                    <div className="text-center py-8">Загрузка...</div>
-                                ) : userFavorites.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-500">
-                                        У пользователя нет избранных карточек
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {userFavorites.map((favorite) => (
-                                            <div
+                    <Modal
+                        isOpen={showFavoritesModal && !!selectedUser}
+                        onClose={() => {
+                            setShowFavoritesModal(false);
+                            setSelectedUser(null);
+                            setUserFavorites([]);
+                        }}
+                        title={`Избранные карточки пользователя ${selectedUser?.first_name}`}
+                        maxWidth="sm:max-w-2xl"
+                        footer={
+                            <button
+                                onClick={() => {
+                                    setShowFavoritesModal(false);
+                                    setSelectedUser(null);
+                                    setUserFavorites([]);
+                                }}
+                                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                            >
+                                Закрыть
+                            </button>
+                        }
+                    >
+                        {loadingFavorites ? (
+                            <div className="text-center py-8">Загрузка...</div>
+                        ) : userFavorites.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                У пользователя нет избранных карточек
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {userFavorites.map((favorite) => (
+                                    <div
                                                 key={favorite.id}
                                                 className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
                                             >
@@ -476,22 +493,7 @@ export default function UsersPage() {
                                         ))}
                                     </div>
                                 )}
-
-                                <div className="flex justify-end mt-6">
-                                    <button
-                                        onClick={() => {
-                                            setShowFavoritesModal(false);
-                                            setSelectedUser(null);
-                                            setUserFavorites([]);
-                                        }}
-                                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                                    >
-                                        Закрыть
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    </Modal>
                 </div>
             </main>
         </div>

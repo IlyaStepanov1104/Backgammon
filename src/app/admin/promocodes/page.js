@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation';
 import {usePromocodes, useCreatePromocode, useUpdatePromocode, useDeletePromocode} from '../../../hooks/usePromocodes';
 import {generatePromocode} from '../../../utils/promocodes';
 import CardSelectorWithRange from '../../../components/CardSelectorWithRange';
+import Modal from '../../../components/Modal';
 
 export default function PromocodesPage() {
     const [promocodes, setPromocodes] = useState([]);
@@ -77,7 +78,7 @@ export default function PromocodesPage() {
             code: promocode.code,
             description: promocode.description || '',
             maxUses: promocode.max_uses,
-            cardIds: [],
+            cardIds: promocode.cardIds || [],
             expiresAt: promocode.expires_at ? promocode.expires_at.split('T')[0] : '',
             isActive: promocode.is_active
         });
@@ -149,14 +150,20 @@ export default function PromocodesPage() {
                 </div>
             </main>
 
-            {(showCreateModal || editingPromocode) && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-start pt-20 z-50">
-                    <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-medium mb-4">{editingPromocode ? 'Редактировать промокод' : 'Создать промокод'}</h3>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            editingPromocode ? handleUpdatePromocode() : handleCreatePromocode();
-                        }}>
+            <Modal
+                isOpen={showCreateModal || !!editingPromocode}
+                onClose={() => {
+                    setShowCreateModal(false);
+                    setEditingPromocode(null);
+                    resetForm();
+                }}
+                title={editingPromocode ? 'Редактировать промокод' : 'Создать промокод'}
+                maxWidth="sm:max-w-md"
+            >
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    editingPromocode ? handleUpdatePromocode() : handleCreatePromocode();
+                }}>
                             <div className="mb-4">
                                 <label className="block text-sm font-medium mb-2">Код промокода *</label>
                                 <div className="flex gap-2">
@@ -214,9 +221,7 @@ export default function PromocodesPage() {
                                 </button>
                             </div>
                         </form>
-                    </div>
-                </div>
-            )}
+            </Modal>
 
         </div>
     );

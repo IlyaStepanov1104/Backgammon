@@ -3,6 +3,7 @@
 import {useState, useEffect} from 'react';
 import RichTextEditor from '../../../components/RichTextEditor';
 import TagSelector from '../../../components/TagSelector';
+import Modal from '../../../components/Modal';
 import {useRouter} from 'next/navigation';
 
 export default function CardsManagement() {
@@ -525,18 +526,18 @@ function CardForm({card, onSubmit, onCancel}) {
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-                <div className="mt-3">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                        {card ? `Редактировать карточку #${card.id}` : 'Создать карточку'}
-                    </h3>
-                    {card && (
-                        <div className="mb-4 text-sm text-gray-600">
-                            <span className="font-mono">ID: {card.id}</span>
-                        </div>
-                    )}
-                    <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal
+            isOpen={true}
+            onClose={onCancel}
+            title={card ? `Редактировать карточку #${card.id}` : 'Создать карточку'}
+            maxWidth="sm:max-w-2xl"
+        >
+            {card && (
+                <div className="mb-4 text-sm text-gray-600">
+                    <span className="font-mono">ID: {card.id}</span>
+                </div>
+            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Название *</label>
                             <input
@@ -704,8 +705,6 @@ function CardForm({card, onSubmit, onCancel}) {
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
 
             {/* Tag Selector Modal for Card Form */}
             {showTagSelector && (
@@ -718,6 +717,6 @@ function CardForm({card, onSubmit, onCancel}) {
                     onClose={() => setShowTagSelector(false)}
                 />
             )}
-        </div>
+        </Modal>
     );
 }

@@ -21,16 +21,17 @@ export async function GET(request) {
     const status = searchParams.get('status') || '';
 
     let sql = `
-      SELECT 
-        p.id, 
-        p.code, 
+      SELECT
+        p.id,
+        p.code,
         p.description,
-        p.max_uses, 
+        p.max_uses,
         p.current_uses,
-        p.expires_at, 
+        p.expires_at,
         p.is_active,
         p.created_at,
-        COUNT(pc.card_id) as card_count
+        COUNT(pc.card_id) as card_count,
+        GROUP_CONCAT(pc.card_id ORDER BY pc.card_id) as card_ids
       FROM promo_codes p
       LEFT JOIN promo_code_cards pc ON p.id = pc.promo_code_id
     `;
@@ -71,13 +72,19 @@ export async function GET(request) {
     const offset = (page - 1) * limit;
     const promocodes = await query(`${sql} LIMIT ${limit} OFFSET ${offset}`, params);
 
+    // Преобразуем card_ids из строки в массив чисел
+    const promocodesWithCardIds = promocodes.map(promo => ({
+      ...promo,
+      cardIds: promo.card_ids ? promo.card_ids.split(',').map(id => parseInt(id)) : []
+    }));
+
     // Получаем общее количество
     const totalResult = await query(countSql, countParams);
     const total = totalResult[0].total;
 
     return NextResponse.json({
       success: true,
-      promocodes,
+      promocodes: promocodesWithCardIds,
       pagination: {
         page,
         limit,
@@ -94,6 +101,7 @@ export async function GET(request) {
 
 // POST - создание нового промокода
 export async function POST(request) {
+  let connection;
   try {
     if (!checkAuth(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -102,28 +110,28 @@ export async function POST(request) {
     const { code, description, maxUses, cardIds, expiresAt, isActive } = await request.json();
 
     if (!code || !cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
-      return NextResponse.json({ 
-        error: 'Code and card IDs array are required' 
+      return NextResponse.json({
+        error: 'Code and card IDs array are required'
       }, { status: 400 });
     }
 
     // Проверяем формат кода
     const codeRegex = /^[A-Z0-9]{6,20}$/;
     if (!codeRegex.test(code.toUpperCase())) {
-      return NextResponse.json({ 
-        error: 'Invalid code format. Must be 6-20 characters, letters and numbers only.' 
+      return NextResponse.json({
+        error: 'Invalid code format. Must be 6-20 characters, letters and numbers only.'
       }, { status: 400 });
     }
 
     // Проверяем, что промокод не существует
     const existingPromocode = await query(
-      'SELECT id FROM promo_codes WHERE code = ?', 
+      'SELECT id FROM promo_codes WHERE code = ?',
       [code.toUpperCase()]
     );
-    
+
     if (existingPromocode.length > 0) {
-      return NextResponse.json({ 
-        error: 'Promocode with this code already exists' 
+      return NextResponse.json({
+        error: 'Promocode with this code already exists'
       }, { status: 400 });
     }
 
@@ -136,53 +144,91 @@ export async function POST(request) {
       );
       const existingCardIds = existingCards.map(row => row.id);
       const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
-      
+
       if (invalidCardIds.length > 0) {
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
-          invalidCardIds 
+          invalidCardIds
         }, { status: 400 });
       }
     }
 
-    // Создаем промокод
-    const result = await query(
-      `INSERT INTO promo_codes (
-        code, description, max_uses, expires_at, is_active
-      ) VALUES (?, ?, ?, ?, ?)`,
-      [
-        code.toUpperCase(),
-        description || null,
-        maxUses || 1,
-        expiresAt || null,
-        isActive !== undefined ? isActive : true
-      ]
-    );
+    connection = await getConnection();
 
-    const promocodeId = result.insertId;
+    // Устанавливаем таймаут для блокировок
+    await connection.execute('SET innodb_lock_wait_timeout = 10');
+    await connection.execute('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
 
-    // Добавляем карточки к промокоду
-    for (const cardId of cardIds) {
-      await query(
-        'INSERT INTO promo_code_cards (promo_code_id, card_id) VALUES (?, ?)',
-        [promocodeId, cardId]
+    await connection.beginTransaction();
+
+    try {
+      // Создаем промокод
+      const [result] = await connection.execute(
+        `INSERT INTO promo_codes (
+          code, description, max_uses, expires_at, is_active
+        ) VALUES (?, ?, ?, ?, ?)`,
+        [
+          code.toUpperCase(),
+          description || null,
+          maxUses || 1,
+          expiresAt || null,
+          isActive !== undefined ? isActive : true
+        ]
       );
-    }
 
-    return NextResponse.json({ 
-      success: true, 
-      promocodeId,
-      message: 'Promocode created successfully'
-    }, { status: 201 });
+      const promocodeId = result.insertId;
+
+      // Добавляем карточки к промокоду batch insert
+      if (cardIds && cardIds.length > 0) {
+        const values = cardIds.map(cardId => `(${promocodeId}, ${cardId})`).join(',');
+        await connection.execute(
+          `INSERT INTO promo_code_cards (promo_code_id, card_id) VALUES ${values}`
+        );
+      }
+
+      await connection.commit();
+
+      return NextResponse.json({
+        success: true,
+        promocodeId,
+        message: 'Promocode created successfully'
+      }, { status: 201 });
+
+    } catch (error) {
+      try {
+        if (connection) {
+          await connection.rollback();
+        }
+      } catch (rollbackError) {
+        console.error('Rollback error:', rollbackError);
+      }
+      throw error;
+    }
 
   } catch (error) {
     console.error('Create promocode error:', error);
+
+    if (error.code === 'ER_LOCK_WAIT_TIMEOUT') {
+      return NextResponse.json({
+        error: 'Операция заблокирована другим процессом. Попробуйте еще раз.'
+      }, { status: 409 });
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    if (connection) {
+      try {
+        connection.release();
+      } catch (releaseError) {
+        console.error('Connection release error:', releaseError);
+      }
+    }
   }
 }
 
 // PUT - обновление промокода
 export async function PUT(request) {
+  let connection;
   try {
     if (!checkAuth(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -191,40 +237,40 @@ export async function PUT(request) {
     const { id, code, description, maxUses, cardIds, expiresAt, isActive } = await request.json();
 
     if (!id || !code) {
-      return NextResponse.json({ 
-        error: 'ID and code are required' 
+      return NextResponse.json({
+        error: 'ID and code are required'
       }, { status: 400 });
     }
 
     // Проверяем формат кода
     const codeRegex = /^[A-Z0-9]{6,20}$/;
     if (!codeRegex.test(code.toUpperCase())) {
-      return NextResponse.json({ 
-        error: 'Invalid code format. Must be 6-20 characters, letters and numbers only.' 
+      return NextResponse.json({
+        error: 'Invalid code format. Must be 6-20 characters, letters and numbers only.'
       }, { status: 400 });
     }
 
     // Проверяем, что промокод существует
     const existingPromocode = await query(
-      'SELECT id FROM promo_codes WHERE id = ?', 
+      'SELECT id FROM promo_codes WHERE id = ?',
       [id]
     );
-    
+
     if (existingPromocode.length === 0) {
-      return NextResponse.json({ 
-        error: 'Promocode not found' 
+      return NextResponse.json({
+        error: 'Promocode not found'
       }, { status: 404 });
     }
 
     // Проверяем, что новый код не конфликтует с существующими
     const duplicateCode = await query(
-      'SELECT id FROM promo_codes WHERE code = ? AND id != ?', 
+      'SELECT id FROM promo_codes WHERE code = ? AND id != ?',
       [code.toUpperCase(), id]
     );
-    
+
     if (duplicateCode.length > 0) {
-      return NextResponse.json({ 
-        error: 'Promocode with this code already exists' 
+      return NextResponse.json({
+        error: 'Promocode with this code already exists'
       }, { status: 400 });
     }
 
@@ -237,56 +283,93 @@ export async function PUT(request) {
       );
       const existingCardIds = existingCards.map(row => row.id);
       const invalidCardIds = cardIds.filter(id => !existingCardIds.includes(id));
-      
+
       if (invalidCardIds.length > 0) {
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: `Некоторые карточки не найдены: ${invalidCardIds.join(', ')}`,
-          invalidCardIds 
+          invalidCardIds
         }, { status: 400 });
       }
     }
 
-    // Обновляем промокод
-    await query(
-      `UPDATE promo_codes SET 
-        code = ?, 
-        description = ?, 
-        max_uses = ?, 
-        expires_at = ?, 
-        is_active = ?
-      WHERE id = ?`,
-      [
-        code.toUpperCase(),
-        description || null,
-        maxUses || 1,
-        expiresAt || null,
-        isActive !== undefined ? isActive : true,
-        id
-      ]
-    );
+    connection = await getConnection();
 
-    // Обновляем карточки промокода
-    if (cardIds && Array.isArray(cardIds)) {
-      // Удаляем старые связи
-      await query('DELETE FROM promo_code_cards WHERE promo_code_id = ?', [id]);
-      
-      // Добавляем новые связи
-      for (const cardId of cardIds) {
-        await query(
-          'INSERT INTO promo_code_cards (promo_code_id, card_id) VALUES (?, ?)',
-          [id, cardId]
-        );
+    // Устанавливаем таймаут для блокировок
+    await connection.execute('SET innodb_lock_wait_timeout = 10');
+    await connection.execute('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+
+    await connection.beginTransaction();
+
+    try {
+      // Обновляем промокод
+      await connection.execute(
+        `UPDATE promo_codes SET
+          code = ?,
+          description = ?,
+          max_uses = ?,
+          expires_at = ?,
+          is_active = ?
+        WHERE id = ?`,
+        [
+          code.toUpperCase(),
+          description || null,
+          maxUses || 1,
+          expiresAt || null,
+          isActive !== undefined ? isActive : true,
+          id
+        ]
+      );
+
+      // Обновляем карточки промокода
+      if (cardIds && Array.isArray(cardIds)) {
+        // Удаляем старые связи
+        await connection.execute('DELETE FROM promo_code_cards WHERE promo_code_id = ?', [id]);
+
+        // Добавляем новые связи batch insert
+        if (cardIds.length > 0) {
+          const values = cardIds.map(cardId => `(${id}, ${cardId})`).join(',');
+          await connection.execute(
+            `INSERT INTO promo_code_cards (promo_code_id, card_id) VALUES ${values}`
+          );
+        }
       }
-    }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Promocode updated successfully'
-    });
+      await connection.commit();
+
+      return NextResponse.json({
+        success: true,
+        message: 'Promocode updated successfully'
+      });
+
+    } catch (error) {
+      try {
+        if (connection) {
+          await connection.rollback();
+        }
+      } catch (rollbackError) {
+        console.error('Rollback error:', rollbackError);
+      }
+      throw error;
+    }
 
   } catch (error) {
     console.error('Update promocode error:', error);
+
+    if (error.code === 'ER_LOCK_WAIT_TIMEOUT') {
+      return NextResponse.json({
+        error: 'Операция заблокирована другим процессом. Попробуйте еще раз.'
+      }, { status: 409 });
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    if (connection) {
+      try {
+        connection.release();
+      } catch (releaseError) {
+        console.error('Connection release error:', releaseError);
+      }
+    }
   }
 }
 
