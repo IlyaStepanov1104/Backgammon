@@ -17,6 +17,7 @@ export default function CardsManagement() {
     const [difficultyFilter, setDifficultyFilter] = useState('');
     const [tagFilter, setTagFilter] = useState([]);
     const [showTagSelectorFilter, setShowTagSelectorFilter] = useState(false);
+    const [sortType, setSortType] = useState('default');
     const router = useRouter();
 
     useEffect(() => {
@@ -28,7 +29,7 @@ export default function CardsManagement() {
         }
 
         fetchCards();
-    }, [pagination.page, searchTerm, difficultyFilter, tagFilter]);
+    }, [pagination.page, searchTerm, difficultyFilter, tagFilter, sortType]);
 
     const fetchCards = async () => {
         try {
@@ -37,7 +38,8 @@ export default function CardsManagement() {
                 limit: pagination.limit,
                 search: searchTerm,
                 difficulty: difficultyFilter,
-                tags: tagFilter.join(',') // ids
+                tags: tagFilter.join(','), // ids
+                sort: sortType
             });
 
             const response = await fetch(`/api/admin/cards?${params}`);
@@ -227,7 +229,7 @@ export default function CardsManagement() {
                 <div className="px-4 py-6 sm:px-0">
                     {/* Filters */}
                     <div className="bg-white p-6 rounded-lg shadow mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Поиск
@@ -266,12 +268,33 @@ export default function CardsManagement() {
                                     Выбрать метки ({tagFilter.length})
                                 </button>
                             </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Сортировка
+                                </label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    value={sortType}
+                                    onChange={(e) => setSortType(e.target.value)}
+                                >
+                                    <option value="default">По умолчанию (дата создания)</option>
+                                    <option value="tags-asc">По меткам (А → Я)</option>
+                                    <option value="tags-desc">По меткам (Я → А)</option>
+                                    <option value="id-asc">По номеру (возрастание)</option>
+                                    <option value="id-desc">По номеру (убывание)</option>
+                                    <option value="updated-asc">По дате обновления (сначала старые)</option>
+                                    <option value="updated-desc">По дате обновления (сначала новые)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="mt-4">
                             <div className="flex items-end">
                                 <button
                                     onClick={() => {
                                         setSearchTerm('');
                                         setDifficultyFilter('');
                                         setTagFilter([]);
+                                        setSortType('default');
                                         setPagination(prev => ({...prev, page: 1}));
                                     }}
                                     className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"

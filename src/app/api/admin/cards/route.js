@@ -39,6 +39,7 @@ export async function GET(request) {
         const search = searchParams.get('search') || '';
         const difficulty = searchParams.get('difficulty') || '';
         const tags = searchParams.get('tags') || '';
+        const sort = searchParams.get('sort') || 'default';
 
         let sql = `
             SELECT c.*,
@@ -82,7 +83,32 @@ export async function GET(request) {
             }
         }
 
-        sql += ' GROUP BY c.id ORDER BY c.created_at DESC';
+        sql += ' GROUP BY c.id';
+
+        // Добавляем сортировку в зависимости от параметра sort
+        switch (sort) {
+            case 'tags-asc':
+                sql += ' ORDER BY tags ASC';
+                break;
+            case 'tags-desc':
+                sql += ' ORDER BY tags DESC';
+                break;
+            case 'id-asc':
+                sql += ' ORDER BY c.id ASC';
+                break;
+            case 'id-desc':
+                sql += ' ORDER BY c.id DESC';
+                break;
+            case 'updated-asc':
+                sql += ' ORDER BY c.updated_at ASC';
+                break;
+            case 'updated-desc':
+                sql += ' ORDER BY c.updated_at DESC';
+                break;
+            default:
+                sql += ' ORDER BY c.created_at DESC';
+                break;
+        }
 
         // Используем безопасную функцию пагинации
         const cards = await queryWithPagination(sql, params, limit, (page - 1) * limit);

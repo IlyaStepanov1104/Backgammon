@@ -35,8 +35,9 @@ const MiniappContent = () => {
     }, [telegramId]);
 
     useEffect(() => {
-        setUserResponse(cards[currentCardIndex]?.response_status === 'correct' ? true : cards[currentCardIndex]?.response_status === 'incorrect' ? false : null);
-    }, [cards[currentCardIndex]])
+        const currentCards = showFavorites ? favorites : cards;
+        setUserResponse(currentCards[currentCardIndex]?.response_status === 'correct' ? true : currentCards[currentCardIndex]?.response_status === 'incorrect' ? false : null);
+    }, [cards, favorites, currentCardIndex, showFavorites])
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -180,19 +181,17 @@ const MiniappContent = () => {
     };
 
     const nextCard = () => {
-        if (userResponse !== null && currentCardIndex < currentCards.length - 1) {
+        if (currentCardIndex < currentCards.length - 1) {
             setCurrentCardIndex(currentCardIndex + 1);
             setShowAnswer(false);
-            setUserResponse(null);
             setCurrentImageIndex(0); // Сброс индекса изображения при смене карточки
         }
     };
 
     const prevCard = () => {
-        if (userResponse !== null && currentCardIndex > 0) {
+        if (currentCardIndex > 0) {
             setCurrentCardIndex(currentCardIndex - 1);
             setShowAnswer(false);
-            setUserResponse(null);
             setCurrentImageIndex(0); // Сброс индекса изображения при смене карточки
         }
     };
