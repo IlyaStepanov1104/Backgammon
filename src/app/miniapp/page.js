@@ -23,6 +23,8 @@ const MiniappContent = () => {
     const [showUnsolvedModal, setShowUnsolvedModal] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showMenu, setShowMenu] = useState(false);
+    const [screenshotLoading, setScreenshotLoading] = useState(false);
+    const [screenshotStatus, setScreenshotStatus] = useState(null); // 'success' | 'error' | null
     const menuRef = useRef(null);
 
     useEffect(() => {
@@ -242,6 +244,51 @@ const MiniappContent = () => {
             if (showFavorites) {
                 setShowFavorites(false);
             }
+        }
+    };
+
+    const handleScreenshot = async () => {
+        const currentCard = showFavorites ? favorites[currentCardIndex] : cards[currentCardIndex];
+
+        if (!currentCard) {
+            setScreenshotStatus('error');
+            setTimeout(() => setScreenshotStatus(null), 3000);
+            return;
+        }
+
+        setScreenshotLoading(true);
+        setScreenshotStatus(null);
+
+        try {
+            const response = await fetch('/api/miniapp/screenshot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    cardId: currentCard.id,
+                    telegramId: telegramId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Ошибка отправки скриншота');
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                setScreenshotStatus('success');
+            } else {
+                setScreenshotStatus('error');
+            }
+        } catch (error) {
+            console.error('Screenshot error:', error);
+            setScreenshotStatus('error');
+        } finally {
+            setScreenshotLoading(false);
+            // Сброс статуса через 3 секунды
+            setTimeout(() => setScreenshotStatus(null), 3000);
         }
     };
 
@@ -549,13 +596,25 @@ const MiniappContent = () => {
                                     </button>
 
                                     <button
-                                        onClick={() => {
-                                            // Здесь можно добавить функционал для скриншота
-                                            alert('Функция скриншота будет добавлена при релизе');
-                                        }}
-                                        className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-medium"
+                                        onClick={handleScreenshot}
+                                        disabled={screenshotLoading || screenshotStatus !== null}
+                                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                            screenshotStatus === 'success'
+                                                ? 'bg-green-500 text-white cursor-not-allowed'
+                                                : screenshotStatus === 'error'
+                                                ? 'bg-red-500 text-white cursor-not-allowed'
+                                                : screenshotLoading
+                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
                                     >
-                                        📸 Скриншот
+                                        📸 {screenshotStatus === 'success'
+                                            ? 'Отправлено!'
+                                            : screenshotStatus === 'error'
+                                            ? 'Ошибка'
+                                            : screenshotLoading
+                                            ? 'Создание...'
+                                            : 'Скриншот'}
                                     </button>
                                 </>
                             )}
