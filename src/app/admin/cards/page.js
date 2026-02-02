@@ -290,66 +290,79 @@ export default function CardsManagement() {
                     )}
 
                     {/* Cards List */}
-                    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                        <ul className="divide-y divide-gray-200">
-                            {cards.map((card) => (
-                                <li key={card.id} className="px-6 py-4">
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center space-x-3">
-                                            <h3 className="text-lg font-medium text-gray-900">
-                                                {card.title}
-                                            </h3>
-                                        </div>
-                                        <div className="flex items-center space-x-3">
-                                            <span className="text-sm font-mono text-gray-500">#{card.id}</span>
-                                            <div className="flex items-center space-x-2">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              card.difficulty_level === 'easy' ? 'bg-green-100 text-green-800' :
-                                  card.difficulty_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-red-100 text-red-800'
-                          }`}>
-                            {card.difficulty_level === 'easy' ? 'Легкая' :
-                                card.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
-                          </span>
-                                                {card.tags && card.tags.split(', ').map((tag, index) => (
-                                                    <span key={index}
-                                                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {tag}
-                            </span>
-                                                ))}
+                    {cards.length === 0 ? (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Карточки не найдены</p>
+                                <p className="text-gray-400 text-sm mt-2">
+                                    {searchTerm || difficultyFilter || tagFilter.length > 0
+                                        ? 'Попробуйте изменить параметры поиска'
+                                        : 'Создайте первую карточку для начала работы'}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                            <ul className="divide-y divide-gray-200">
+                                {cards.map((card) => (
+                                    <li key={card.id} className="px-6 py-4">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center space-x-3">
+                                                <h3 className="text-lg font-medium text-gray-900">
+                                                    {card.title}
+                                                </h3>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                {card.description && (
-                                                    <p className="mt-1 text-sm text-gray-600 line-clamp-2">
-                                                        {card.description}
-                                                    </p>
-                                                )}
-                                                <div className="mt-2 text-xs text-gray-500">
-                                                    Создана: {new Date(card.created_at).toLocaleDateString('ru-RU')}
+                                            <div className="flex items-center space-x-3">
+                                                <span className="text-sm font-mono text-gray-500">#{card.id}</span>
+                                                <div className="flex items-center space-x-2">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  card.difficulty_level === 'easy' ? 'bg-green-100 text-green-800' :
+                                      card.difficulty_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-red-100 text-red-800'
+                              }`}>
+                                {card.difficulty_level === 'easy' ? 'Легкая' :
+                                    card.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
+                              </span>
+                                                    {card.tags && card.tags.split(', ').map((tag, index) => (
+                                                        <span key={index}
+                                                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {tag}
+                                </span>
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center space-x-2">
-                                                <button
-                                                    onClick={() => setEditingCard(card)}
-                                                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
-                                                >
-                                                    Редактировать
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteCard(card.id)}
-                                                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
-                                                >
-                                                    Удалить
-                                                </button>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    {card.description && (
+                                                        <p className="mt-1 text-sm text-gray-600 line-clamp-2">
+                                                            {card.description}
+                                                        </p>
+                                                    )}
+                                                    <div className="mt-2 text-xs text-gray-500">
+                                                        Создана: {new Date(card.created_at).toLocaleDateString('ru-RU')}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={() => setEditingCard(card)}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                                                    >
+                                                        Редактировать
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteCard(card.id)}
+                                                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     {pagination.pages > 1 && (

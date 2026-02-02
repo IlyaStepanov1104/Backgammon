@@ -8,6 +8,7 @@ import Modal from '../../../components/Modal';
 
 export default function PackagesPage() {
   const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
   const [formData, setFormData] = useState({
@@ -30,7 +31,12 @@ export default function PackagesPage() {
       router.push('/admin');
       return;
     }
-    fetchPackages();
+    const loadPackages = async () => {
+      setLoading(true);
+      await fetchPackages();
+      setLoading(false);
+    };
+    loadPackages();
   }, [router]);
 
   useEffect(() => {
@@ -119,72 +125,93 @@ export default function PackagesPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Название
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Цена (₽)
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Карточек
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Статус
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Действия
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {packages.map((pkg) => (
-                  <tr key={pkg.id}>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
-                      {pkg.description && (
-                        <div className="text-sm text-gray-500 max-w-xs truncate" title={pkg.description}>
-                          {pkg.description}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{pkg.price} ₽</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{pkg.card_count}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        pkg.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {pkg.is_active ? 'Активен' : 'Неактивен'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(pkg)}
-                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                      >
-                        Изменить
-                      </button>
-                      <button
-                        onClick={() => handleDeletePackage(pkg.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Удалить
-                      </button>
-                    </td>
+          {loading ? (
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg p-12">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg">Загрузка...</p>
+              </div>
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg p-12">
+              <div className="text-center">
+                <p className="text-gray-500 text-lg">Пакеты не найдены</p>
+                <p className="text-gray-400 text-sm mt-2">Создайте первый пакет для продажи доступа к карточкам</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Название
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Цена (₽)
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Карточек
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Статус
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Действия
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {packages.map((pkg) => (
+                    <tr key={pkg.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        #{pkg.id}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
+                        {pkg.description && (
+                          <div className="text-sm text-gray-500 max-w-xs truncate" title={pkg.description}>
+                            {pkg.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{pkg.price} ₽</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{pkg.card_count}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          pkg.is_active
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {pkg.is_active ? 'Активен' : 'Неактивен'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(pkg)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        >
+                          Изменить
+                        </button>
+                        <button
+                          onClick={() => handleDeletePackage(pkg.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Удалить
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
 

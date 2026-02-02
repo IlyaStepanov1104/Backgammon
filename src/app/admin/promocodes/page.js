@@ -9,6 +9,7 @@ import Modal from '../../../components/Modal';
 
 export default function PromocodesPage() {
     const [promocodes, setPromocodes] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [editingPromocode, setEditingPromocode] = useState(null);
     const [formData, setFormData] = useState({
@@ -33,7 +34,12 @@ export default function PromocodesPage() {
             router.push('/admin');
             return;
         }
-        fetchPromocodes();
+        const loadPromocodes = async () => {
+            setLoading(true);
+            await fetchPromocodes();
+            setLoading(false);
+        };
+        loadPromocodes();
     }, [router]);
 
     useEffect(() => {
@@ -85,7 +91,7 @@ export default function PromocodesPage() {
     };
 
     const handleGenerateCode = () => {
-        const newCode = generatePromocode({prefix: 'PROMO', length: 8});
+        const newCode = generatePromocode();
         setFormData(prev => ({...prev, code: newCode}));
     };
 
@@ -117,36 +123,53 @@ export default function PromocodesPage() {
 
             <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
                 <div className="px-4 py-6 sm:px-0">
-                    <table className="bg-white shadow overflow-hidden sm:rounded-md min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Код</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Описание</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Использования</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Карточек</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                        {promocodes.map((promo) => (
-                            <tr key={promo.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-mono">{promo.code}</td>
-                                <td className="px-6 py-4">{promo.description || '-'}</td>
-                                <td className="px-6 py-4">{promo.current_uses} / {promo.max_uses}</td>
-                                <td className="px-6 py-4">{promo.card_count || 0}</td>
-                                <td className="px-6 py-4 space-x-2">
-                                    <button onClick={() => handleEdit(promo)}
-                                            className="text-blue-600 hover:text-blue-900">Редактировать
-                                    </button>
-                                    <button onClick={() => handleDeletePromocode(promo.id)}
-                                            className="text-red-600 hover:text-red-900"
-                                            disabled={promo.current_uses > 0}>Удалить
-                                    </button>
-                                </td>
+                    {loading ? (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Загрузка...</p>
+                            </div>
+                        </div>
+                    ) : promocodes.length === 0 ? (
+                        <div className="bg-white shadow overflow-hidden sm:rounded-md p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Промокоды не найдены</p>
+                                <p className="text-gray-400 text-sm mt-2">Создайте первый промокод для предоставления доступа к карточкам</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <table className="bg-white shadow overflow-hidden sm:rounded-md min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Код</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Описание</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Использования</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Карточек</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                            {promocodes.map((promo) => (
+                                <tr key={promo.id} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4 text-sm text-gray-500">#{promo.id}</td>
+                                    <td className="px-6 py-4 font-mono">{promo.code}</td>
+                                    <td className="px-6 py-4">{promo.description || '-'}</td>
+                                    <td className="px-6 py-4">{promo.current_uses} / {promo.max_uses}</td>
+                                    <td className="px-6 py-4">{promo.card_count || 0}</td>
+                                    <td className="px-6 py-4 space-x-2">
+                                        <button onClick={() => handleEdit(promo)}
+                                                className="text-blue-600 hover:text-blue-900">Редактировать
+                                        </button>
+                                        <button onClick={() => handleDeletePromocode(promo.id)}
+                                                className="text-red-600 hover:text-red-900"
+                                                disabled={promo.current_uses > 0}>Удалить
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </main>
 

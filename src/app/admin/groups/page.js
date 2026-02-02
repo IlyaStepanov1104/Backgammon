@@ -6,6 +6,7 @@ import Modal from '../../../components/Modal';
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({
         page: 1,
         limit: 20,
@@ -38,6 +39,7 @@ export default function GroupsPage() {
 
     const fetchGroups = async () => {
         try {
+            setLoading(true);
             const params = new URLSearchParams({
                 page: pagination.page,
                 limit: pagination.limit,
@@ -54,6 +56,8 @@ export default function GroupsPage() {
             }
         } catch (error) {
             console.error('Error fetching groups:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -288,79 +292,102 @@ export default function GroupsPage() {
                     </div>
 
                     {/* Таблица групп */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Название группы
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Описание
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Участников
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Дата создания
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Действия
-                                    </th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {groups.map((group) => (
-                                    <tr key={group.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">
-                                                {group.name}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-900 max-w-xs truncate">
-                                                {group.description || 'Без описания'}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedGroup(group);
-                                                    fetchGroupMembers(group.id);
-                                                }}
-                                                className="text-blue-600 hover:text-blue-900 underline"
-                                            >
-                                                {group.member_count} участников
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {formatDateTime(group.created_at)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedGroup(group);
-                                                    setEditGroup({id: group.id, name: group.name, description: group.description || ''});
-                                                    setShowEditModal(true);
-                                                }}
-                                                className="text-indigo-600 hover:text-indigo-900"
-                                            >
-                                                Редактировать
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteGroup(group.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Удалить
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                    {loading ? (
+                        <div className="bg-white rounded-lg shadow p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Загрузка...</p>
+                            </div>
                         </div>
-                    </div>
+                    ) : groups.length === 0 ? (
+                        <div className="bg-white rounded-lg shadow p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Группы не найдены</p>
+                                <p className="text-gray-400 text-sm mt-2">
+                                    {searchTerm ? 'Попробуйте изменить параметры поиска' : 'Создайте первую группу для организации пользователей'}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Название группы
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Описание
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Участников
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Дата создания
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Действия
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    {groups.map((group) => (
+                                        <tr key={group.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                #{group.id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {group.name}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-900 max-w-xs truncate">
+                                                    {group.description || 'Без описания'}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedGroup(group);
+                                                        fetchGroupMembers(group.id);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 underline"
+                                                >
+                                                    {group.member_count} участников
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {formatDateTime(group.created_at)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedGroup(group);
+                                                        setEditGroup({id: group.id, name: group.name, description: group.description || ''});
+                                                        setShowEditModal(true);
+                                                    }}
+                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                >
+                                                    Редактировать
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteGroup(group.id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Удалить
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Пагинация */}
                     {pagination.pages > 1 && (

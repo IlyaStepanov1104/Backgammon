@@ -7,6 +7,7 @@ import Modal from '../../../components/Modal';
 
 export default function UsersPage() {
     const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({
         page: 1,
         limit: 20,
@@ -36,6 +37,7 @@ export default function UsersPage() {
 
     const fetchUsers = async () => {
         try {
+            setLoading(true);
             const params = new URLSearchParams({
                 page: pagination.page,
                 limit: pagination.limit,
@@ -53,6 +55,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             console.error('Error fetching users:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -235,101 +239,122 @@ export default function UsersPage() {
                     </div>
 
                     {/* Таблица пользователей */}
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Пользователь
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Telegram ID
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Доступ к карточкам
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Избранные
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Статистика
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Группы
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Дата регистрации
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Действия
-                                    </th>
-                                </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {users.map((user) => (
-                                    <tr key={user.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    {user.first_name} {user.last_name}
-                                                </div>
-                                                <div className="text-sm text-gray-500">@{user.username}</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {user.telegram_id}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {user.accessible_cards || 0} карточек
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedUser(user);
-                                                    fetchUserFavorites(user.id);
-                                                }}
-                                                className="text-blue-600 hover:text-blue-900 underline"
-                                            >
-                                                {user.favorite_cards || 0} карточек
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            <div className="text-green-600">✅ {user.solved_cards || 0}</div>
-                                            <div className="text-red-600">❓ {user.unsolved_cards || 0}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {/* Здесь будут группы пользователя */}
-                                            Группы
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {formatDateTime(user.created_at)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedUser(user);
-                                                    fetchUserActiveCards(user.id).then(() => {
-                                                        setShowAccessModal(true);
-                                                    });
-                                                }}
-                                                className="text-indigo-600 hover:text-indigo-900 mr-3"
-                                            >
-                                                Дать доступ
-                                            </button>
-                                            <button
-                                                onClick={() => handleRevokeAccess(user.id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Отозвать доступ
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                    {loading ? (
+                        <div className="bg-white rounded-lg shadow p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Загрузка...</p>
+                            </div>
                         </div>
-                    </div>
+                    ) : users.length === 0 ? (
+                        <div className="bg-white rounded-lg shadow p-12">
+                            <div className="text-center">
+                                <p className="text-gray-500 text-lg">Пользователи не найдены</p>
+                                <p className="text-gray-400 text-sm mt-2">Попробуйте изменить параметры поиска</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Пользователь
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Telegram ID
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Доступ к карточкам
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Избранные
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Статистика
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Группы
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Дата регистрации
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Действия
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    {users.map((user) => (
+                                        <tr key={user.id}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                #{user.id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {user.first_name} {user.last_name}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">@{user.username}</div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {user.telegram_id}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {user.accessible_cards || 0} карточек
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUser(user);
+                                                        fetchUserFavorites(user.id);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 underline"
+                                                >
+                                                    {user.favorite_cards || 0} карточек
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                <div className="text-green-600">✅ {user.solved_cards || 0}</div>
+                                                <div className="text-red-600">❓ {user.unsolved_cards || 0}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {/* Здесь будут группы пользователя */}
+                                                Группы
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {formatDateTime(user.created_at)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUser(user);
+                                                        fetchUserActiveCards(user.id).then(() => {
+                                                            setShowAccessModal(true);
+                                                        });
+                                                    }}
+                                                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                                >
+                                                    Дать доступ
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRevokeAccess(user.id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Отозвать доступ
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Пагинация */}
                     {pagination.pages > 1 && (
