@@ -21,9 +21,10 @@ export default function UsersPage() {
     const [selectedCards, setSelectedCards] = useState([]);
     const [expiresAt, setExpiresAt] = useState('');
     const [error, setError] = useState('');
-    const [showFavoritesModal, setShowFavoritesModal] = useState(false);
-    const [userFavorites, setUserFavorites] = useState([]);
-    const [loadingFavorites, setLoadingFavorites] = useState(false);
+    const [showCardsModal, setShowCardsModal] = useState(false);
+    const [cardsModalType, setCardsModalType] = useState(''); // 'favorites' | 'correct' | 'incorrect'
+    const [modalCards, setModalCards] = useState([]);
+    const [loadingCards, setLoadingCards] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -72,21 +73,44 @@ export default function UsersPage() {
         }
     };
 
-    const fetchUserFavorites = async (userId) => {
+    const fetchUserCards = async (userId, type) => {
         try {
-            setLoadingFavorites(true);
-            const response = await fetch(`/api/admin/users/${userId}/favorites`);
+            setLoadingCards(true);
+            setCardsModalType(type);
+
+            let endpoint;
+            let dataKey;
+
+            switch (type) {
+                case 'favorites':
+                    endpoint = `/api/admin/users/${userId}/favorites`;
+                    dataKey = 'favorites';
+                    break;
+                case 'correct':
+                    endpoint = `/api/admin/users/${userId}/responses/correct`;
+                    dataKey = 'responses';
+                    break;
+                case 'incorrect':
+                    endpoint = `/api/admin/users/${userId}/responses/incorrect`;
+                    dataKey = 'responses';
+                    break;
+                default:
+                    console.error('Invalid type');
+                    return;
+            }
+
+            const response = await fetch(endpoint);
             if (response.ok) {
                 const data = await response.json();
-                setUserFavorites(data.favorites || []);
-                setShowFavoritesModal(true);
+                setModalCards(data[dataKey] || []);
+                setShowCardsModal(true);
             } else {
-                console.error('Failed to fetch favorites');
+                console.error(`Failed to fetch ${type}`);
             }
         } catch (error) {
-            console.error('Error fetching favorites:', error);
+            console.error(`Error fetching ${type}:`, error);
         } finally {
-            setLoadingFavorites(false);
+            setLoadingCards(false);
         }
     };
 
@@ -97,8 +121,8 @@ export default function UsersPage() {
             });
 
             if (response.ok) {
-                // Обновляем список избранных
-                setUserFavorites(prev => prev.filter(fav => fav.id !== cardId));
+                // Обновляем список карточек в модальном окне
+                setModalCards(prev => prev.filter(card => card.id !== cardId));
                 // Обновляем список пользователей
                 fetchUsers();
             } else {
@@ -311,7 +335,7 @@ export default function UsersPage() {
                                                 <button
                                                     onClick={() => {
                                                         setSelectedUser(user);
-                                                        fetchUserFavorites(user.id);
+                                                        fetchUserCards(user.id, 'favorites');
                                                     }}
                                                     className="text-blue-600 hover:text-blue-900 underline"
                                                 >
@@ -319,8 +343,24 @@ export default function UsersPage() {
                                                 </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                <div className="text-green-600">✅ {user.solved_cards || 0}</div>
-                                                <div className="text-red-600">❓ {user.unsolved_cards || 0}</div>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUser(user);
+                                                        fetchUserCards(user.id, 'correct');
+                                                    }}
+                                                    className="text-green-600 hover:text-green-800 underline block"
+                                                >
+                                                    ✅ {user.solved_cards || 0}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUser(user);
+                                                        fetchUserCards(user.id, 'incorrect');
+                                                    }}
+                                                    className="text-red-600 hover:text-red-800 underline block"
+                                                >
+                                                    ❓ {user.unsolved_cards || 0}
+                                                </button>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {/* Здесь будут группы пользователя */}
@@ -440,22 +480,29 @@ export default function UsersPage() {
                         </div>
                     </Modal>
 
-                    {/* Модальное окно для просмотра избранных карточек */}
+                    {/* Универсальное модальное окно для просмотра карточек */}
                     <Modal
-                        isOpen={showFavoritesModal && !!selectedUser}
+                        isOpen={showCardsModal && !!selectedUser}
                         onClose={() => {
-                            setShowFavoritesModal(false);
+                            setShowCardsModal(false);
                             setSelectedUser(null);
-                            setUserFavorites([]);
+                            setModalCards([]);
+                            setCardsModalType('');
                         }}
-                        title={`Избранные карточки пользователя ${selectedUser?.first_name}`}
+                        title={`${
+                            cardsModalType === 'favorites' ? 'Избранные карточки' :
+                            cardsModalType === 'correct' ? 'Карточки с правильными ответами' :
+                            cardsModalType === 'incorrect' ? 'Карточки с неправильными ответами' :
+                            'Карточки'
+                        } пользователя ${selectedUser?.first_name}`}
                         maxWidth="sm:max-w-2xl"
                         footer={
                             <button
                                 onClick={() => {
-                                    setShowFavoritesModal(false);
+                                    setShowCardsModal(false);
                                     setSelectedUser(null);
-                                    setUserFavorites([]);
+                                    setModalCards([]);
+                                    setCardsModalType('');
                                 }}
                                 className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                             >
@@ -463,61 +510,66 @@ export default function UsersPage() {
                             </button>
                         }
                     >
-                        {loadingFavorites ? (
+                        {loadingCards ? (
                             <div className="text-center py-8">Загрузка...</div>
-                        ) : userFavorites.length === 0 ? (
+                        ) : modalCards.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
-                                У пользователя нет избранных карточек
+                                {cardsModalType === 'favorites' && 'У пользователя нет избранных карточек'}
+                                {cardsModalType === 'correct' && 'У пользователя нет карточек с правильными ответами'}
+                                {cardsModalType === 'incorrect' && 'У пользователя нет карточек с неправильными ответами'}
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {userFavorites.map((favorite) => (
+                                {modalCards.map((card) => (
                                     <div
-                                                key={favorite.id}
-                                                className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
-                                            >
-                                                <div className="flex items-center space-x-4 flex-1">
-                                                    {favorite.image_url && (
-                                                        <img
-                                                            src={favorite.image_url}
-                                                            alt={favorite.title}
-                                                            className="w-16 rounded"
-                                                        />
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                        <span
-                                                            className="text-sm font-mono text-gray-400">#{favorite.id}</span>
-                                                            <h4 className="font-medium text-gray-900">{favorite.title}</h4>
-                                                        </div>
-                                                        {favorite.description && (
-                                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                                                                {favorite.description}
-                                                            </p>
-                                                        )}
-                                                        <div
-                                                            className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                                                    <span>
-                                                        Сложность: {favorite.difficulty_level === 'easy' ? 'Легкая' :
-                                                        favorite.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
-                                                    </span>
-                                                            <span>
-                                                        Добавлено: {new Date(favorite.favorite_added_at).toLocaleDateString('ru-RU')}
-                                                    </span>
-                                                        </div>
-                                                    </div>
+                                        key={card.id}
+                                        className="border rounded-lg p-4 flex items-center justify-between hover:bg-gray-50"
+                                    >
+                                        <div className="flex items-center space-x-4 flex-1">
+                                            {card.image_url && (
+                                                <img
+                                                    src={card.image_url}
+                                                    alt={card.title}
+                                                    className="w-16 rounded"
+                                                />
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-mono text-gray-400">#{card.id}</span>
+                                                    <h4 className="font-medium text-gray-900">{card.title}</h4>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleRemoveFavorite(selectedUser.id, favorite.id)}
-                                                    className="ml-4 text-red-600 hover:text-red-900 px-3 py-2 rounded hover:bg-red-50"
-                                                    title="Удалить из избранного"
-                                                >
-                                                    Удалить
-                                                </button>
+                                                {card.description && (
+                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                        {card.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                                    <span>
+                                                        Сложность: {card.difficulty_level === 'easy' ? 'Легкая' :
+                                                        card.difficulty_level === 'medium' ? 'Средняя' : 'Сложная'}
+                                                    </span>
+                                                    <span>
+                                                        {cardsModalType === 'favorites'
+                                                            ? `Добавлено: ${new Date(card.favorite_added_at).toLocaleDateString('ru-RU')}`
+                                                            : `Ответ: ${new Date(card.response_time).toLocaleString('ru-RU')}`
+                                                        }
+                                                    </span>
+                                                </div>
                                             </div>
-                                        ))}
+                                        </div>
+                                        {cardsModalType === 'favorites' && (
+                                            <button
+                                                onClick={() => handleRemoveFavorite(selectedUser.id, card.id)}
+                                                className="ml-4 text-red-600 hover:text-red-900 px-3 py-2 rounded hover:bg-red-50"
+                                                title="Удалить из избранного"
+                                            >
+                                                Удалить
+                                            </button>
+                                        )}
                                     </div>
-                                )}
+                                ))}
+                            </div>
+                        )}
                     </Modal>
                 </div>
             </main>
