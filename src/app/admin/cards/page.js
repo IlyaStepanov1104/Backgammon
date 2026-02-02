@@ -18,7 +18,86 @@ export default function CardsManagement() {
     const [tagFilter, setTagFilter] = useState([]);
     const [showTagSelectorFilter, setShowTagSelectorFilter] = useState(false);
     const [sortType, setSortType] = useState('default');
+    const [savedFilters, setSavedFilters] = useState([]);
+    const [showSaveFilterModal, setShowSaveFilterModal] = useState(false);
+    const [newFilterName, setNewFilterName] = useState('');
     const router = useRouter();
+
+    // Загрузка сохраненных фильтров
+    const fetchSavedFilters = async () => {
+        try {
+            const response = await fetch('/api/admin/saved-filters');
+            if (response.ok) {
+                const data = await response.json();
+                setSavedFilters(data.filters);
+            }
+        } catch (error) {
+            console.error('Error fetching saved filters:', error);
+        }
+    };
+
+    // Сохранение текущих фильтров
+    const handleSaveFilters = async () => {
+        if (!newFilterName.trim()) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/admin/saved-filters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newFilterName,
+                    filters: {
+                        searchTerm,
+                        difficultyFilter,
+                        tagFilter,
+                        sortType
+                    }
+                })
+            });
+
+            if (response.ok) {
+                setShowSaveFilterModal(false);
+                setNewFilterName('');
+                fetchSavedFilters();
+            } else {
+                const data = await response.json();
+                setError(data.error || 'Ошибка сохранения фильтра');
+            }
+        } catch (error) {
+            setError('Ошибка соединения с сервером');
+        }
+    };
+
+    // Применение сохраненного фильтра
+    const applyFilter = (filter) => {
+        const filters = filter.filters;
+        setSearchTerm(filters.searchTerm || '');
+        setDifficultyFilter(filters.difficultyFilter || '');
+        setTagFilter(filters.tagFilter || []);
+        setSortType(filters.sortType || 'default');
+        setPagination(prev => ({ ...prev, page: 1 }));
+    };
+
+    // Удаление сохраненного фильтра
+    const deleteFilter = async (filterId) => {
+        if (!confirm('Удалить этот фильтр?')) return;
+
+        try {
+            const response = await fetch(`/api/admin/saved-filters?id=${filterId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                fetchSavedFilters();
+            } else {
+                setError('Ошибка удаления фильтра');
+            }
+        } catch (error) {
+            setError('Ошибка соединения с сервером');
+        }
+    };
 
     useEffect(() => {
         // Проверяем авторизацию
@@ -30,6 +109,10 @@ export default function CardsManagement() {
 
         fetchCards();
     }, [pagination.page, searchTerm, difficultyFilter, tagFilter, sortType]);
+
+    useEffect(() => {
+        fetchSavedFilters();
+    }, []);
 
     const fetchCards = async () => {
         try {
@@ -288,7 +371,7 @@ export default function CardsManagement() {
                             </div>
                         </div>
                         <div className="mt-4">
-                            <div className="flex items-end">
+                            <div className="flex gap-2">
                                 <button
                                     onClick={() => {
                                         setSearchTerm('');
@@ -297,12 +380,50 @@ export default function CardsManagement() {
                                         setSortType('default');
                                         setPagination(prev => ({...prev, page: 1}));
                                     }}
-                                    className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
                                 >
                                     Сбросить фильтры
                                 </button>
+                                <button
+                                    onClick={() => setShowSaveFilterModal(true)}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                                >
+                                    Сохранить фильтры
+                                </button>
                             </div>
                         </div>
+
+                        {/* Saved Filters */}
+                        {savedFilters.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Сохраненные фильтры
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {savedFilters.map((filter) => (
+                                        <div
+                                            key={filter.id}
+                                            className="inline-flex items-center bg-blue-100 rounded-full"
+                                        >
+                                            <button
+                                                onClick={() => applyFilter(filter)}
+                                                className="px-3 py-1 text-sm text-blue-800 hover:bg-blue-200 rounded-l-full"
+                                                title="Применить фильтр"
+                                            >
+                                                {filter.name}
+                                            </button>
+                                            <button
+                                                onClick={() => deleteFilter(filter.id)}
+                                                className="px-2 py-1 text-blue-600 hover:text-red-600 hover:bg-red-100 rounded-r-full"
+                                                title="Удалить фильтр"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Error Message */}
@@ -463,6 +584,67 @@ export default function CardsManagement() {
                     }}
                     onClose={() => setShowTagSelectorFilter(false)}
                 />
+            )}
+
+            {/* Save Filter Modal */}
+            {showSaveFilterModal && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => {
+                        setShowSaveFilterModal(false);
+                        setNewFilterName('');
+                    }}
+                    title="Сохранить фильтры"
+                    maxWidth="sm:max-w-md"
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Название фильтра
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Введите название..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                value={newFilterName}
+                                onChange={(e) => setNewFilterName(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <p className="font-medium mb-1">Текущие фильтры:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                                {searchTerm && <li>Поиск: "{searchTerm}"</li>}
+                                {difficultyFilter && (
+                                    <li>Сложность: {difficultyFilter === 'easy' ? 'Легкая' : difficultyFilter === 'medium' ? 'Средняя' : 'Сложная'}</li>
+                                )}
+                                {tagFilter.length > 0 && <li>Метки: {tagFilter.length} шт.</li>}
+                                {sortType !== 'default' && <li>Сортировка: {sortType}</li>}
+                                {!searchTerm && !difficultyFilter && tagFilter.length === 0 && sortType === 'default' && (
+                                    <li className="text-gray-400">Фильтры не заданы</li>
+                                )}
+                            </ul>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                            <button
+                                onClick={() => {
+                                    setShowSaveFilterModal(false);
+                                    setNewFilterName('');
+                                }}
+                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                Отмена
+                            </button>
+                            <button
+                                onClick={handleSaveFilters}
+                                disabled={!newFilterName.trim()}
+                                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                Сохранить
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
             )}
         </div>
     );

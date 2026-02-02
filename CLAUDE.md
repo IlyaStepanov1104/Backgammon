@@ -17,11 +17,14 @@ npm run dev              # Start Next.js dev server (port 3000)
 npm run bot              # Start Telegram bot with polling (run in separate terminal)
 ```
 
-### Database
+### Database Migrations
 ```bash
-npm run db:migrate       # Run database migrations
+npm run migrate          # Run all pending migrations
+npm run migrate:create -- <name>  # Create new migration (e.g., npm run migrate:create -- add_column)
+npm run migrate:rollback          # Rollback last batch of migrations
+npm run migrate:rollback --step=N # Rollback N migrations
+npm run migrate:rollback --all    # Rollback all migrations
 npm run test:db          # Test database connection and schema
-node migrate-packages.js # Run packages migration (creates packages tables)
 ```
 
 ### Testing
@@ -62,6 +65,11 @@ src/
 │   └── bot.js            # Main bot logic with polling
 ├── services/             # Shared services
 │   ├── database.js       # MySQL connection pool and query helpers
+│   ├── database/         # Database utilities
+│   │   ├── migrate.js           # Migration runner
+│   │   ├── migrate-create.js    # Migration file generator
+│   │   ├── migrate-rollback.js  # Migration rollback
+│   │   └── migrations/          # Migration files (timestamped)
 │   └── s3.ts             # S3 file upload (if configured)
 ├── components/           # React components
 ├── hooks/                # React hooks
@@ -92,8 +100,54 @@ src/
 - `card_tags` - Many-to-many relationship between cards and tags
 - `user_groups` - Groups of users
 - `user_group_members` - Many-to-many relationship between groups and users
+- `migrations` - System table tracking executed database migrations
 
 **Important**: Always use parameterized queries to prevent SQL injection. The query helpers handle this automatically.
+
+### Database Migrations
+
+**Location**: `src/services/database/migrations/`
+
+**Migration files** are named with timestamp prefix: `YYYYMMDD_HHMMSS_name.js`
+
+**Structure**:
+```javascript
+/**
+ * Run the migration
+ * @param {import('mysql2/promise').Connection} connection
+ */
+async function up(connection) {
+    await connection.execute(`
+        CREATE TABLE example (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+}
+
+/**
+ * Reverse the migration
+ * @param {import('mysql2/promise').Connection} connection
+ */
+async function down(connection) {
+    await connection.execute('DROP TABLE IF EXISTS example');
+}
+
+module.exports = { up, down };
+```
+
+**How it works**:
+- `migrations` table tracks executed migrations with batch numbers
+- Each `npm run migrate` creates a new batch
+- Rollback by default removes all migrations from the last batch
+- Migrations run in transactions - if one fails, changes are rolled back
+
+**Commands**:
+- `npm run migrate` - Run pending migrations
+- `npm run migrate:create -- add_users_email` - Create migration file
+- `npm run migrate:rollback` - Rollback last batch
+- `npm run migrate:rollback --step=3` - Rollback last 3 migrations
+- `npm run migrate:rollback --all` - Rollback all migrations
 
 ### Telegram Bot Architecture
 
@@ -367,7 +421,7 @@ See `docs/mysql-locks-troubleshooting.md` for detailed guide.
 
 1. **Two Separate Processes**: Next.js dev server AND Telegram bot must both run for full functionality
 2. **No Webhooks**: Bot uses polling, not webhooks - simpler for development but requires separate process
-3. **Database Schema**: While `npm run db:migrate` is defined, actual migration implementation may need completion
+3. **Database Migrations**: Full migration system available via `npm run migrate`, `migrate:create`, `migrate:rollback`
 4. **File Storage**: Images stored locally in `public/uploads/` - consider cloud storage (S3) for production
 5. **Admin Auth**: Current admin authentication is basic - session management can be enhanced
 6. **Character Set**: Database should use `utf8mb4` collation for proper emoji/multilingual support
