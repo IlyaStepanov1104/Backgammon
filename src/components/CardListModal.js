@@ -38,11 +38,11 @@ export default function CardListModal({ isOpen, onClose, cards, onCardSelect, cu
                 }`}
               >
                 {/* Миниатюра изображения */}
-                <div className="aspect-video bg-gray-100 rounded mb-3 overflow-hidden">
+                <div className="bg-gray-100 rounded mb-3 overflow-hidden">
                   <img
                     src={card.image_url}
                     alt={card.title}
-                    className="w-full"
+                    className="w-full h-full "
                   />
                 </div>
 

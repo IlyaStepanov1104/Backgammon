@@ -295,13 +295,13 @@ const MiniappContent = () => {
     const getAvailableImages = (card) => {
         const images = [];
         if (card.image_url) {
-            images.push({ url: card.image_url, caption: 'Позиция' });
+            images.push({ url: card.image_url, caption: 'Позиция', text: card.description });
         }
         if (card.image_url_2) {
-            images.push({ url: card.image_url_2, caption: 'Ход в партии' });
+            images.push({ url: card.image_url_2, caption: 'Ход в партии', text: card.position_description });
         }
         if (card.image_url_3) {
-            images.push({ url: card.image_url_3, caption: 'Лучший ход' });
+            images.push({ url: card.image_url_3, caption: 'Лучший ход', text: card.correct_moves });
         }
         return images;
     };
@@ -510,40 +510,46 @@ const MiniappContent = () => {
 
                         {showAnswer && (
                             <>
-                                {currentCard.description && (
-                                    <div className="mb-6">
-                                        <div
-                                            className="text-gray-700 leading-relaxed"
-                                            style={{
-                                                wordWrap: 'break-word',
-                                                overflowWrap: 'break-word'
-                                            }}
-                                            dangerouslySetInnerHTML={{
-                                                __html: currentCard.description
-                                            }}
-                                        />
-                                        <style jsx global>{`
-                                            .text-gray-700 strong {
-                                                font-weight: bold;
-                                            }
-                                            .text-gray-700 em {
-                                                font-style: italic;
-                                            }
-                                            .text-gray-700 u {
-                                                text-decoration: underline;
-                                            }
-                                            .text-gray-700 p {
-                                                margin: 0.5em 0;
-                                            }
-                                            .text-gray-700 p:first-child {
-                                                margin-top: 0;
-                                            }
-                                            .text-gray-700 p:last-child {
-                                                margin-bottom: 0;
-                                            }
-                                        `}</style>
-                                    </div>
-                                )}
+                                {(() => {
+                                    const images = getAvailableImages(currentCard);
+                                    const currentImage = images[currentImageIndex] || images[0];
+                                    const currentText = currentImage?.text;
+
+                                    return currentText && (
+                                        <div className="mb-6">
+                                            <div
+                                                className="text-gray-700 leading-relaxed"
+                                                style={{
+                                                    wordWrap: 'break-word',
+                                                    overflowWrap: 'break-word'
+                                                }}
+                                                dangerouslySetInnerHTML={{
+                                                    __html: currentText
+                                                }}
+                                            />
+                                            <style jsx global>{`
+                                                .text-gray-700 strong {
+                                                    font-weight: bold;
+                                                }
+                                                .text-gray-700 em {
+                                                    font-style: italic;
+                                                }
+                                                .text-gray-700 u {
+                                                    text-decoration: underline;
+                                                }
+                                                .text-gray-700 p {
+                                                    margin: 0.5em 0;
+                                                }
+                                                .text-gray-700 p:first-child {
+                                                    margin-top: 0;
+                                                }
+                                                .text-gray-700 p:last-child {
+                                                    margin-bottom: 0;
+                                                }
+                                            `}</style>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* Response Buttons */}
                                 <div className="flex space-x-4 mb-6">

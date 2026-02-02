@@ -129,6 +129,38 @@ export default function RichTextEditor({ value = '', onChange, placeholder = '',
 
         <div className="w-px h-6 bg-gray-300"></div>
 
+        {/* Выровнять по левому краю */}
+        <button
+          type="button"
+          onClick={() => handleFormat('justifyLeft')}
+          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
+          title="Выровнять по левому краю"
+        >
+          ⬅
+        </button>
+
+        {/* Выровнять по центру */}
+        <button
+          type="button"
+          onClick={() => handleFormat('justifyCenter')}
+          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
+          title="Выровнять по центру"
+        >
+          ⬌
+        </button>
+
+        {/* Выровнять по правому краю */}
+        <button
+          type="button"
+          onClick={() => handleFormat('justifyRight')}
+          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
+          title="Выровнять по правому краю"
+        >
+          ➡
+        </button>
+
+        <div className="w-px h-6 bg-gray-300"></div>
+
         {/* Размер шрифта */}
         <div className="flex items-center gap-2">
           <label className="text-xs text-gray-600">Размер:</label>
@@ -161,38 +193,6 @@ export default function RichTextEditor({ value = '', onChange, placeholder = '',
             title="Цвет текста"
           />
         </div>
-
-        <div className="w-px h-6 bg-gray-300"></div>
-
-        {/* Выровнять по левому краю */}
-        <button
-          type="button"
-          onClick={() => handleFormat('justifyLeft')}
-          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
-          title="Выровнять по левому краю"
-        >
-          ⬅
-        </button>
-
-        {/* Выровнять по центру */}
-        <button
-          type="button"
-          onClick={() => handleFormat('justifyCenter')}
-          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
-          title="Выровнять по центру"
-        >
-          ⬌
-        </button>
-
-        {/* Выровнять по правому краю */}
-        <button
-          type="button"
-          onClick={() => handleFormat('justifyRight')}
-          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-100"
-          title="Выровнять по правому краю"
-        >
-          ➡
-        </button>
       </div>
 
       {/* Редактор */}

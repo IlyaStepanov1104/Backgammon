@@ -21,7 +21,36 @@ export default function CardsManagement() {
     const [savedFilters, setSavedFilters] = useState([]);
     const [showSaveFilterModal, setShowSaveFilterModal] = useState(false);
     const [newFilterName, setNewFilterName] = useState('');
+    const [exporting, setExporting] = useState(false);
     const router = useRouter();
+
+    // Экспорт всех карточек в ZIP
+    const handleExportCards = async () => {
+        setExporting(true);
+        setError('');
+        try {
+            const response = await fetch('/api/admin/export-cards');
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Ошибка экспорта');
+            }
+
+            // Скачиваем файл
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cards_export_${new Date().toISOString().slice(0, 10)}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            setError(error.message || 'Ошибка экспорта карточек');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     // Загрузка сохраненных фильтров
     const fetchSavedFilters = async () => {
@@ -290,6 +319,13 @@ export default function CardsManagement() {
                             Управление карточками
                         </h1>
                         <div className="flex items-center space-x-4">
+                            <button
+                                onClick={handleExportCards}
+                                disabled={exporting}
+                                className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-md text-sm font-medium"
+                            >
+                                {exporting ? 'Экспорт...' : 'Экспорт ZIP'}
+                            </button>
                             <button
                                 onClick={() => setShowCreateForm(true)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -748,181 +784,244 @@ function CardForm({card, onSubmit, onCancel}) {
             isOpen={true}
             onClose={onCancel}
             title={card ? `Редактировать карточку #${card.id}` : 'Создать карточку'}
-            maxWidth="sm:max-w-2xl"
+            maxWidth="sm:max-w-4xl"
         >
             {card && (
                 <div className="mb-4 text-sm text-gray-600">
                     <span className="font-mono">ID: {card.id}</span>
                 </div>
             )}
-            <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Название *</label>
-                            <input
-                                type="text"
-                                required
-                                maxLength={255}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                value={formData.title}
-                                onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))}
-                            />
-                        </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Основная информация */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">Название *</label>
+                    <input
+                        type="text"
+                        required
+                        maxLength={255}
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        value={formData.title}
+                        onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))}
+                    />
+                </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Описание</label>
-                            <div className="mb-2">
-                                <input
-                                    type="file"
-                                    accept=".txt"
-                                    onChange={(e) => {
-                                        const file = e.target.files[0];
-                                        if (file) {
-                                            const reader = new FileReader();
-                                            reader.onload = (event) => {
-                                                setFormData(prev => ({...prev, description: event.target.result}));
-                                            };
-                                            reader.readAsText(file);
-                                        }
-                                    }}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                />
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Сложность</label>
+                        <select
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            value={formData.difficulty_level}
+                            onChange={(e) => setFormData(prev => ({...prev, difficulty_level: e.target.value}))}
+                        >
+                            <option value="easy">Легкая</option>
+                            <option value="medium">Средняя</option>
+                            <option value="hard">Сложная</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Метки</label>
+                        <button
+                            type="button"
+                            onClick={() => setShowTagSelector(true)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-left"
+                        >
+                            Выбрать метки ({formData.tags.length})
+                        </button>
+                        {formData.tags.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                                {formData.tags.map(tagId => (
+                                    <span key={tagId} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {tagNames[tagId] || 'Загрузка...'}
+                                    </span>
+                                ))}
                             </div>
-                            <RichTextEditor
-                                value={formData.description}
-                                onChange={(html) => setFormData(prev => ({...prev, description: html}))}
-                                placeholder="Введите описание карточки..."
-                                rows={5}
-                            />
-                            <p className="mt-1 text-xs text-gray-500">
-                                Выделите текст и используйте кнопки форматирования для изменения стиля, или загрузите
-                                текст из .txt файла
-                            </p>
-                        </div>
+                        )}
+                    </div>
+                </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Изображение *</label>
+                {/* Секция 1: Позиция */}
+                <div className="border-t pt-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 text-sm">1</span>
+                        Позиция
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                        {/* Левая колонка - изображение */}
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Изображение {!card && '*'}</label>
                             <input
                                 type="file"
                                 accept="image/*"
                                 required={!card}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
                                         setFormData(prev => ({...prev, image_file: file}));
                                     }
                                 }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
                             {card?.image_url && (
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">Текущее изображение:</p>
-                                    <img
-                                        src={card.image_url}
-                                        alt="Текущее изображение"
-                                        className="w-32 rounded mt-1"
-                                    />
+                                    <img src={card.image_url} alt="Позиция" className="w-full rounded" />
                                 </div>
                             )}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Ход в партии:</label>
+                        {/* Правая колонка - текст */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Текст (описание)</label>
+                            <input
+                                type="file"
+                                accept=".txt"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            setFormData(prev => ({...prev, description: event.target.result}));
+                                        };
+                                        reader.readAsText(file);
+                                    }
+                                }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-2"
+                            />
+                            <RichTextEditor
+                                value={formData.description}
+                                onChange={(html) => setFormData(prev => ({...prev, description: html}))}
+                                placeholder="Введите описание позиции..."
+                                rows={6}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Секция 2: Ход в партии */}
+                <div className="border-t pt-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded mr-2 text-sm">2</span>
+                        Ход в партии
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                        {/* Левая колонка - изображение */}
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Изображение</label>
                             <input
                                 type="file"
                                 accept="image/*"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
                                         setFormData(prev => ({...prev, image_file_2: file}));
                                     }
                                 }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
                             />
                             {card?.image_url_2 && (
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">Текущее изображение:</p>
-                                    <img
-                                        src={card.image_url_2}
-                                        alt="Текущее изображение"
-                                        className="w-32 rounded mt-1"
-                                    />
+                                    <img src={card.image_url_2} alt="Ход в партии" className="w-full rounded" />
                                 </div>
                             )}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Лучший ход:</label>
+                        {/* Правая колонка - текст */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Текст (описание хода)</label>
+                            <input
+                                type="file"
+                                accept=".txt"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            setFormData(prev => ({...prev, position_description: event.target.result}));
+                                        };
+                                        reader.readAsText(file);
+                                    }
+                                }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 mb-2"
+                            />
+                            <RichTextEditor
+                                value={formData.position_description}
+                                onChange={(html) => setFormData(prev => ({...prev, position_description: html}))}
+                                placeholder="Введите описание хода в партии..."
+                                rows={6}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Секция 3: Лучший ход */}
+                <div className="border-t pt-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2 text-sm">3</span>
+                        Лучший ход
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                        {/* Левая колонка - изображение */}
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Изображение</label>
                             <input
                                 type="file"
                                 accept="image/*"
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
                                         setFormData(prev => ({...prev, image_file_3: file}));
                                     }
                                 }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                             />
                             {card?.image_url_3 && (
                                 <div className="mt-2">
-                                    <p className="text-sm text-gray-500">Текущее изображение:</p>
-                                    <img
-                                        src={card.image_url_3}
-                                        alt="Текущее изображение"
-                                        className="w-32 rounded mt-1"
-                                    />
+                                    <img src={card.image_url_3} alt="Лучший ход" className="w-full rounded" />
                                 </div>
                             )}
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Сложность</label>
-                            <select
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                value={formData.difficulty_level}
-                                onChange={(e) => setFormData(prev => ({...prev, difficulty_level: e.target.value}))}
-                            >
-                                <option value="easy">Легкая</option>
-                                <option value="medium">Средняя</option>
-                                <option value="hard">Сложная</option>
-                            </select>
+                        {/* Правая колонка - текст */}
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Текст (правильные ходы)</label>
+                            <input
+                                type="file"
+                                accept=".txt"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            setFormData(prev => ({...prev, correct_moves: event.target.result}));
+                                        };
+                                        reader.readAsText(file);
+                                    }
+                                }}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 mb-2"
+                            />
+                            <RichTextEditor
+                                value={formData.correct_moves}
+                                onChange={(html) => setFormData(prev => ({...prev, correct_moves: html}))}
+                                placeholder="Введите описание лучшего хода..."
+                                rows={6}
+                            />
                         </div>
+                    </div>
+                </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Метки</label>
-                            <button
-                                type="button"
-                                onClick={() => setShowTagSelector(true)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-left"
-                            >
-                                Выбрать метки ({formData.tags.length})
-                            </button>
-                            {formData.tags.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                    {formData.tags.map(tagId => (
-                                        <span key={tagId}
-                                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {tagNames[tagId] || 'Загрузка...'}
-                    </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end space-x-3 pt-4">
-                            <button
-                                type="button"
-                                onClick={onCancel}
-                                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                Отмена
-                            </button>
-                            <button
-                                type="submit"
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                            >
-                                {card ? 'Обновить' : 'Создать'}
-                            </button>
-                        </div>
-                    </form>
+                {/* Кнопки */}
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                        Отмена
+                    </button>
+                    <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                    >
+                        {card ? 'Обновить' : 'Создать'}
+                    </button>
+                </div>
+            </form>
 
             {/* Tag Selector Modal for Card Form */}
             {showTagSelector && (
