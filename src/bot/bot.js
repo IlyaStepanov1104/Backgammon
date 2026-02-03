@@ -36,10 +36,13 @@ bot.onText(/\/start/, async (msg) => {
         const hasAccess = await checkUserAccess(user.id);
 
         if (hasAccess) {
-            const message = `
-Привет, ${user.first_name}! 👋\n
-У Вас есть доступ к карточкам для совершенствования в коротких нардах.\n
-Нажмите кнопку, чтобы открыть приложение.`;
+            const message = `Привет, ${user.first_name}! 👋
+
+У Вас есть доступ к карточкам для совершенствования в коротких нардах.
+
+Нажмите кнопку, чтобы открыть приложение.
+
+💡 Есть промокод? Просто отправьте его в этот чат.`;
 
             const keyboard = {
                 inline_keyboard: [
@@ -58,7 +61,15 @@ bot.onText(/\/start/, async (msg) => {
 
             bot.sendMessage(chatId, message, {reply_markup: keyboard});
         } else {
-            const message = `Привет, ${user.first_name}! 👋\n\nК сожалению, у тебя пока нет доступа к карточкам.\n\nДля получения доступа:\n1. Купи пакет карточек\n2. Используй промокод\n3. Обратись к администратору\n\nОтправь промокод в чат, если он у тебя есть.`;
+            const message = `Привет, ${user.first_name}! 👋
+
+К сожалению, у тебя пока нет доступа к карточкам.
+
+Для получения доступа:
+1. Купи пакет карточек
+2. Используй промокод
+
+💡 Есть промокод? Просто отправь его в этот чат!`;
 
             const keyboard = {
                 inline_keyboard: [[
@@ -328,7 +339,7 @@ async function checkPromoCode(code, telegramId) {
 // Функция показа списка пакетов
 async function showPackages(chatId, telegramId) {
     try {
-        // Получаем список активных пакетов
+        // Получаем список активных пакетов (не истекших)
         const packages = await query(
             `SELECT p.id,
                     p.name,
@@ -338,6 +349,7 @@ async function showPackages(chatId, telegramId) {
              FROM packages p
                       LEFT JOIN package_cards pc ON p.id = pc.package_id
              WHERE p.is_active = 1
+               AND (p.expires_at IS NULL OR p.expires_at > NOW())
              GROUP BY p.id
              ORDER BY p.price ASC`
         );
@@ -365,6 +377,7 @@ async function showPackages(chatId, telegramId) {
             message += `📚 Карточек: ${pkg.card_count}\n\n`;
         });
 
+        message += '💡 Есть промокод? Просто отправьте его в чат!\n\n';
         message += 'Выберите пакет для покупки:';
 
         bot.sendMessage(chatId, message, {reply_markup: keyboard});
@@ -377,7 +390,7 @@ async function showPackages(chatId, telegramId) {
 // Функция покупки пакета
 async function buyPackage(chatId, telegramId, packageId) {
     try {
-        // Получаем информацию о пакете
+        // Получаем информацию о пакете (не истекшем)
         const packages = await query(
             `SELECT p.id,
                     p.name,
@@ -387,6 +400,7 @@ async function buyPackage(chatId, telegramId, packageId) {
                       LEFT JOIN package_cards pc ON p.id = pc.package_id
              WHERE p.id = ?
                AND p.is_active = 1
+               AND (p.expires_at IS NULL OR p.expires_at > NOW())
              GROUP BY p.id`,
             [packageId]
         );

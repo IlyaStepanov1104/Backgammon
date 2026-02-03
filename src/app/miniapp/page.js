@@ -24,6 +24,11 @@ const MiniappContent = () => {
     const [screenshotLoading, setScreenshotLoading] = useState(false);
     const [screenshotStatus, setScreenshotStatus] = useState(null); // 'success' | 'error' | null
     const [lightboxImage, setLightboxImage] = useState(null); // URL изображения для lightbox
+    const [showPromoModal, setShowPromoModal] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoError, setPromoError] = useState('');
+    const [promoSuccess, setPromoSuccess] = useState('');
     const menuRef = useRef(null);
 
     useEffect(() => {
@@ -331,6 +336,49 @@ const MiniappContent = () => {
         return images;
     };
 
+    const handlePromoCodeSubmit = async (e) => {
+        e.preventDefault();
+        if (!promoCode.trim()) return;
+
+        setPromoLoading(true);
+        setPromoError('');
+        setPromoSuccess('');
+
+        try {
+            const response = await fetch('/api/miniapp/promocode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    telegramId,
+                    code: promoCode.trim()
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setPromoSuccess(`Промокод активирован! Доступ к ${data.cardCount} карточкам.`);
+                setPromoCode('');
+                // Перезагружаем карточки
+                setTimeout(() => {
+                    fetchCards();
+                    fetchFavorites();
+                    fetchSolved();
+                    fetchUnsolved();
+                    setShowPromoModal(false);
+                    setPromoSuccess('');
+                }, 1500);
+            } else {
+                setPromoError(data.error || 'Ошибка активации промокода');
+            }
+        } catch (error) {
+            console.error('Promo code error:', error);
+            setPromoError('Ошибка соединения с сервером');
+        } finally {
+            setPromoLoading(false);
+        }
+    };
+
     if (!telegramId) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -366,9 +414,55 @@ const MiniappContent = () => {
             'favorites': { icon: '⭐', title: 'Нет избранных карточек', text: 'Добавьте карточки в избранное, чтобы они здесь появились.' },
             'solved': { icon: '✅', title: 'Нет решенных карточек', text: 'Решайте карточки, чтобы они здесь появились.' },
             'unsolved': { icon: '❓', title: 'Нет нерешенных карточек', text: 'Все карточки решены!' },
-            'all': { icon: '📋', title: 'Нет доступных карточек', text: 'Обратитесь к администратору для получения доступа.' }
+            'all': { icon: '📋', title: 'Нет доступных карточек', text: 'Введите промокод или купите пакет карточек в боте.' }
         };
         const msg = emptyMessages[viewMode];
+
+        // Специальный экран для отсутствия доступа
+        if (viewMode === 'all' && cards.length === 0) {
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div className="text-center max-w-md mx-4">
+                        <div className="text-6xl mb-4">🔐</div>
+                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Нет доступа к карточкам</h1>
+                        <p className="text-gray-600 mb-6">
+                            Для получения доступа введите промокод или купите пакет карточек в боте.
+                        </p>
+
+                        {/* Форма ввода промокода */}
+                        <form onSubmit={handlePromoCodeSubmit} className="mb-6">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={promoCode}
+                                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                    placeholder="Введите промокод"
+                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-mono uppercase"
+                                    disabled={promoLoading}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={promoLoading || !promoCode.trim()}
+                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium"
+                                >
+                                    {promoLoading ? '...' : 'OK'}
+                                </button>
+                            </div>
+                            {promoError && (
+                                <p className="mt-2 text-red-600 text-sm">{promoError}</p>
+                            )}
+                            {promoSuccess && (
+                                <p className="mt-2 text-green-600 text-sm">{promoSuccess}</p>
+                            )}
+                        </form>
+
+                        <p className="text-gray-500 text-sm">
+                            Промокод можно также отправить боту в Telegram
+                        </p>
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -474,10 +568,17 @@ const MiniappContent = () => {
                                                 <div className="border-t border-gray-200 my-1"></div>
                                                 <button
                                                     onClick={() => { setShowListModal(true); setShowMenu(false); }}
-                                                    className="w-full text-left px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-b-lg font-medium flex items-center gap-2"
+                                                    className="w-full text-left px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium flex items-center gap-2"
                                                 >
                                                     <span>📋</span>
                                                     <span>Список ({currentCards.length})</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setShowPromoModal(true); setShowMenu(false); }}
+                                                    className="w-full text-left px-4 py-2 bg-purple-100 text-purple-800 hover:bg-purple-200 rounded-b-lg font-medium flex items-center gap-2"
+                                                >
+                                                    <span>🎟️</span>
+                                                    <span>Ввести промокод</span>
                                                 </button>
                                             </div>
                                         )}
@@ -720,6 +821,70 @@ const MiniappContent = () => {
                         className="max-w-full max-h-full object-contain p-4"
                         onClick={(e) => e.stopPropagation()}
                     />
+                </div>
+            )}
+
+            {/* Модальное окно ввода промокода */}
+            {showPromoModal && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+                    onClick={() => setShowPromoModal(false)}
+                >
+                    <div
+                        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-gray-900">Ввести промокод</h2>
+                            <button
+                                onClick={() => setShowPromoModal(false)}
+                                className="text-gray-500 hover:text-gray-700 text-2xl"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <form onSubmit={handlePromoCodeSubmit}>
+                            <input
+                                type="text"
+                                value={promoCode}
+                                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                placeholder="Введите промокод"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center font-mono uppercase mb-4"
+                                disabled={promoLoading}
+                                autoFocus
+                            />
+
+                            {promoError && (
+                                <p className="mb-4 text-red-600 text-sm text-center">{promoError}</p>
+                            )}
+                            {promoSuccess && (
+                                <p className="mb-4 text-green-600 text-sm text-center">{promoSuccess}</p>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowPromoModal(false);
+                                        setPromoCode('');
+                                        setPromoError('');
+                                        setPromoSuccess('');
+                                    }}
+                                    className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={promoLoading || !promoCode.trim()}
+                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium"
+                                >
+                                    {promoLoading ? 'Проверка...' : 'Активировать'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>
