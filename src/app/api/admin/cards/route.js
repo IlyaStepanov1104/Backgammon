@@ -16,7 +16,7 @@ async function saveFile(file) {
 
     fs.writeFileSync(filepath, Buffer.from(arrayBuffer));
 
-    return `/uploads/cards/${filename}`;
+    return `/api/uploads/cards/${filename}`;
 }
 
 // Простая проверка авторизации

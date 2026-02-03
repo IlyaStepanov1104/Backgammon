@@ -143,13 +143,19 @@ export async function GET() {
 
 /**
  * Convert URL path to local file system path
- * @param {string} imageUrl - URL like /uploads/cards/xxx.jpg
+ * @param {string} imageUrl - URL like /uploads/cards/xxx.jpg or /api/uploads/cards/xxx.jpg
  * @returns {string|null} - Local file path or null
  */
 function getLocalImagePath(imageUrl) {
     if (!imageUrl) return null;
 
-    // Handle local uploads
+    // Handle API uploads (new format)
+    if (imageUrl.startsWith('/api/uploads/cards/')) {
+        const filename = imageUrl.replace('/api/uploads/cards/', '');
+        return path.join(process.cwd(), 'public', 'uploads', 'cards', filename);
+    }
+
+    // Handle local uploads (old format)
     if (imageUrl.startsWith('/uploads/')) {
         return path.join(process.cwd(), 'public', imageUrl);
     }
@@ -159,6 +165,10 @@ function getLocalImagePath(imageUrl) {
         // Extract path from URL if it's our own domain
         try {
             const url = new URL(imageUrl);
+            if (url.pathname.startsWith('/api/uploads/cards/')) {
+                const filename = url.pathname.replace('/api/uploads/cards/', '');
+                return path.join(process.cwd(), 'public', 'uploads', 'cards', filename);
+            }
             if (url.pathname.startsWith('/uploads/')) {
                 return path.join(process.cwd(), 'public', url.pathname);
             }
