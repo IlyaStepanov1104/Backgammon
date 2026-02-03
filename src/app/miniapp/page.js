@@ -13,14 +13,12 @@ const MiniappContent = () => {
     const [showAnswer, setShowAnswer] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [showFavorites, setShowFavorites] = useState(false);
+    const [viewMode, setViewMode] = useState('all'); // 'all' | 'favorites' | 'solved' | 'unsolved'
     const [favorites, setFavorites] = useState([]);
     const [solvedCards, setSolvedCards] = useState([]);
     const [unsolvedCards, setUnsolvedCards] = useState([]);
     const [userResponse, setUserResponse] = useState(null);
-    const [showCardListModal, setShowCardListModal] = useState(false);
-    const [showSolvedModal, setShowSolvedModal] = useState(false);
-    const [showUnsolvedModal, setShowUnsolvedModal] = useState(false);
+    const [showListModal, setShowListModal] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showMenu, setShowMenu] = useState(false);
     const [screenshotLoading, setScreenshotLoading] = useState(false);
@@ -36,10 +34,22 @@ const MiniappContent = () => {
         }
     }, [telegramId]);
 
+    // Получаем текущий набор карточек в зависимости от режима
+    const getCurrentCards = () => {
+        switch (viewMode) {
+            case 'favorites': return favorites;
+            case 'solved': return solvedCards;
+            case 'unsolved': return unsolvedCards;
+            default: return cards;
+        }
+    };
+
+    const currentCards = getCurrentCards();
+    const currentCard = currentCards[currentCardIndex];
+
     useEffect(() => {
-        const currentCards = showFavorites ? favorites : cards;
-        setUserResponse(currentCards[currentCardIndex]?.response_status === 'correct' ? true : currentCards[currentCardIndex]?.response_status === 'incorrect' ? false : null);
-    }, [cards, favorites, currentCardIndex, showFavorites])
+        setUserResponse(currentCard?.response_status === 'correct' ? true : currentCard?.response_status === 'incorrect' ? false : null);
+    }, [cards, favorites, solvedCards, unsolvedCards, currentCardIndex, viewMode])
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -141,7 +151,6 @@ const MiniappContent = () => {
     };
 
     const handleToggleFavorite = async () => {
-        const currentCard = showFavorites ? favorites[currentCardIndex] : cards[currentCardIndex];
         const isFavorite = favorites.some(fav => fav.id === currentCard.id);
 
         try {
@@ -154,9 +163,9 @@ const MiniappContent = () => {
                 setFavorites(updatedFavorites);
 
                 // Если мы в режиме избранного и удалили последнюю карточку, переключаемся на все карточки
-                if (showFavorites && updatedFavorites.length === 0) {
-                    switchToAllCards();
-                } else if (showFavorites) {
+                if (viewMode === 'favorites' && updatedFavorites.length === 0) {
+                    switchToMode('all');
+                } else if (viewMode === 'favorites') {
                     // Если удалили карточку в режиме избранного, переходим на предыдущую или первую
                     const newIndex = currentCardIndex >= updatedFavorites.length
                         ? Math.max(0, updatedFavorites.length - 1)
@@ -213,20 +222,27 @@ const MiniappContent = () => {
         }
     };
 
-    const switchToFavorites = () => {
-        if (favorites.length === 0) {
-            alert('У вас пока нет избранных карточек. Добавьте карточки в избранное, чтобы они здесь появились.');
+    const switchToMode = (mode) => {
+        // Проверка на пустой список
+        const targetCards = {
+            'all': cards,
+            'favorites': favorites,
+            'solved': solvedCards,
+            'unsolved': unsolvedCards
+        }[mode];
+
+        if (targetCards.length === 0) {
+            const messages = {
+                'favorites': 'У вас пока нет избранных карточек.',
+                'solved': 'У вас пока нет решенных карточек.',
+                'unsolved': 'У вас пока нет нерешенных карточек.',
+                'all': 'Нет доступных карточек.'
+            };
+            alert(messages[mode]);
             return;
         }
-        setShowFavorites(true);
-        setCurrentCardIndex(0);
-        setCurrentImageIndex(0);
-        setShowAnswer(false);
-        setUserResponse(null);
-    };
 
-    const switchToAllCards = () => {
-        setShowFavorites(false);
+        setViewMode(mode);
         setCurrentCardIndex(0);
         setCurrentImageIndex(0);
         setShowAnswer(false);
@@ -234,22 +250,17 @@ const MiniappContent = () => {
     };
 
     const handleCardSelect = (cardId) => {
-        const cardIndex = cards.findIndex(card => card.id === cardId);
+        // Ищем карточку в текущем режиме
+        const cardIndex = currentCards.findIndex(card => card.id === cardId);
         if (cardIndex !== -1) {
             setCurrentCardIndex(cardIndex);
             setShowAnswer(false);
             setUserResponse(null);
-            setCurrentImageIndex(0); // Сброс индекса изображения
-            // Если мы были в режиме избранного, переключаемся на все карточки
-            if (showFavorites) {
-                setShowFavorites(false);
-            }
+            setCurrentImageIndex(0);
         }
     };
 
     const handleScreenshot = async () => {
-        const currentCard = showFavorites ? favorites[currentCardIndex] : cards[currentCardIndex];
-
         if (!currentCard) {
             setScreenshotStatus('error');
             setTimeout(() => setScreenshotStatus(null), 3000);
@@ -336,34 +347,29 @@ const MiniappContent = () => {
         );
     }
 
-    const currentCards = showFavorites ? favorites : cards;
-    const currentCard = currentCards[currentCardIndex];
-
     if (!currentCard) {
-        if (showFavorites && favorites.length === 0) {
-            return (
-                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                    <div className="text-center max-w-md mx-4">
-                        <div className="text-6xl mb-4">⭐</div>
-                        <h1 className="text-2xl font-bold text-gray-900 mb-4">Нет избранных карточек</h1>
-                        <p className="text-gray-600 mb-6">
-                            Добавьте карточки в избранное, чтобы они здесь появились. Для этого откройте карточку, нажмите "Показать ответ" и затем "В избранное".
-                        </p>
+        const emptyMessages = {
+            'favorites': { icon: '⭐', title: 'Нет избранных карточек', text: 'Добавьте карточки в избранное, чтобы они здесь появились.' },
+            'solved': { icon: '✅', title: 'Нет решенных карточек', text: 'Решайте карточки, чтобы они здесь появились.' },
+            'unsolved': { icon: '❓', title: 'Нет нерешенных карточек', text: 'Все карточки решены!' },
+            'all': { icon: '📋', title: 'Нет доступных карточек', text: 'Обратитесь к администратору для получения доступа.' }
+        };
+        const msg = emptyMessages[viewMode];
+
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="text-center max-w-md mx-4">
+                    <div className="text-6xl mb-4">{msg.icon}</div>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">{msg.title}</h1>
+                    <p className="text-gray-600 mb-6">{msg.text}</p>
+                    {viewMode !== 'all' && (
                         <button
-                            onClick={switchToAllCards}
+                            onClick={() => switchToMode('all')}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium"
                         >
                             Перейти ко всем карточкам
                         </button>
-                    </div>
-                </div>
-            );
-        }
-        return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Нет доступных карточек</h1>
-                    <p className="text-gray-600">Обратитесь к администратору для получения доступа</p>
+                    )}
                 </div>
             </div>
         );
@@ -371,136 +377,146 @@ const MiniappContent = () => {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* Main Content */}
-            <main className="max-w-4xl mx-auto py-6 px-4">
-                {/* Header with Favorites Button and List Button */}
-                <div className="flex justify-between items-center mb-4">
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowMenu(!showMenu)}
-                            className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg font-medium flex items-center gap-2"
-                        >
-                            <span>☰</span>
-                            <span>Меню</span>
-                        </button>
-                        {showMenu && (
-                            <div ref={menuRef} className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-max">
-                                <button
-                                    onClick={() => { showFavorites ? switchToAllCards() : switchToFavorites(); setShowMenu(false); }}
-                                    disabled={!showFavorites && favorites.length === 0}
-                                    className={`w-full text-left px-4 py-2 rounded-t-lg font-medium flex items-center gap-2 ${
-                                        showFavorites
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                            : favorites.length === 0
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                                    }`}
-                                    title={favorites.length === 0 ? 'Добавьте карточки в избранное' : ''}
-                                >
-                                    <span>⭐</span>
-                                    <span>{showFavorites ? 'Все карточки' : `Избранное (${favorites.length})`}</span>
-                                </button>
-                                <button
-                                    onClick={() => { setShowSolvedModal(true); setShowMenu(false); }}
-                                    disabled={solvedCards.length === 0}
-                                    className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
-                                        solvedCards.length === 0
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    }`}
-                                    title={solvedCards.length === 0 ? 'Решенных карточек пока нет' : ''}
-                                >
-                                    <span>✅</span>
-                                    <span>Решенные ({solvedCards.length})</span>
-                                </button>
-                                <button
-                                    onClick={() => { setShowUnsolvedModal(true); setShowMenu(false); }}
-                                    disabled={unsolvedCards.length === 0}
-                                    className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
-                                        unsolvedCards.length === 0
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                            : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                    }`}
-                                    title={unsolvedCards.length === 0 ? 'Нерешенных карточек пока нет' : ''}
-                                >
-                                    <span>❓</span>
-                                    <span>Нерешенные ({unsolvedCards.length})</span>
-                                </button>
-                                <button
-                                    onClick={() => { setShowCardListModal(true); setShowMenu(false); }}
-                                    className="w-full text-left px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-b-lg font-medium flex items-center gap-2"
-                                    title="Показать список всех карточек"
-                                >
-                                    <span>📋</span>
-                                    <span>Список</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                    <div className="text-center">
-                        <span className="text-sm text-gray-600">
-                            Карточка {currentCardIndex + 1} из {currentCards.length}
-                        </span>
-                        {showFavorites && (
-                            <div className="text-xs text-gray-500 mt-1">
-                                Режим избранного
-                            </div>
-                        )}
-                    </div>
-                </div>
+            {/* Sticky Header with Image and Controls */}
+            <div className="sticky top-0 z-10 bg-white shadow-sm pt-2">
+                {(() => {
+                    const images = getAvailableImages(currentCard);
+                    const currentImage = images[currentImageIndex] || images[0];
 
-                {/* Card */}
-                <div className="bg-white rounded-lg shadow-lg">
-                    {/* Card Image */}
-                    <div className="sticky top-0 z-10 bg-white shadow-sm">
-                        {(() => {
-                            const images = getAvailableImages(currentCard);
-                            const currentImage = images[currentImageIndex] || images[0];
+                    return (
+                        <>
+                            {/* Image */}
+                            <img
+                                src={currentImage.url}
+                                alt={currentCard.title}
+                                className="w-full h-auto max-h-96 object-contain"
+                            />
 
-                            return (
-                                <div className="relative">
-                                    {/* Image */}
-                                    <img
-                                        src={currentImage.url}
-                                        alt={currentCard.title}
-                                        className="w-full h-auto max-h-96 object-contain"
-                                    />
-
-                                    {/* Caption */}
-                                    <div className="text-center py-2 relative">
-                                        {images.length > 1 && (
-                                            <>
+                            {/* Control Bar */}
+                            <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100">
+                                {/* Left: Menu + Card Counter */}
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowMenu(!showMenu)}
+                                            className="px-3 py-1.5 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-sm font-medium flex items-center gap-1"
+                                        >
+                                            <span>☰</span>
+                                        </button>
+                                        {showMenu && (
+                                            <div ref={menuRef} className="absolute top-full left-0 mt-2 bg-white border border-gray-300 rounded-lg shadow-lg z-50 min-w-max">
+                                                {viewMode !== 'all' && (
+                                                    <button
+                                                        onClick={() => { switchToMode('all'); setShowMenu(false); }}
+                                                        className="w-full text-left px-4 py-2 rounded-t-lg font-medium flex items-center gap-2 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                                    >
+                                                        <span>📋</span>
+                                                        <span>Все карточки ({cards.length})</span>
+                                                    </button>
+                                                )}
+                                                {viewMode !== 'favorites' && (
+                                                    <button
+                                                        onClick={() => { switchToMode('favorites'); setShowMenu(false); }}
+                                                        disabled={favorites.length === 0}
+                                                        className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${viewMode === 'all' ? 'rounded-t-lg' : ''} ${
+                                                            favorites.length === 0
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                                        }`}
+                                                    >
+                                                        <span>⭐</span>
+                                                        <span>Избранное ({favorites.length})</span>
+                                                    </button>
+                                                )}
+                                                {viewMode !== 'solved' && (
+                                                    <button
+                                                        onClick={() => { switchToMode('solved'); setShowMenu(false); }}
+                                                        disabled={solvedCards.length === 0}
+                                                        className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
+                                                            solvedCards.length === 0
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-green-100 text-green-800 hover:bg-green-200'
+                                                        }`}
+                                                    >
+                                                        <span>✅</span>
+                                                        <span>Решенные ({solvedCards.length})</span>
+                                                    </button>
+                                                )}
+                                                {viewMode !== 'unsolved' && (
+                                                    <button
+                                                        onClick={() => { switchToMode('unsolved'); setShowMenu(false); }}
+                                                        disabled={unsolvedCards.length === 0}
+                                                        className={`w-full text-left px-4 py-2 font-medium flex items-center gap-2 ${
+                                                            unsolvedCards.length === 0
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                                        }`}
+                                                    >
+                                                        <span>❓</span>
+                                                        <span>Нерешенные ({unsolvedCards.length})</span>
+                                                    </button>
+                                                )}
+                                                <div className="border-t border-gray-200 my-1"></div>
                                                 <button
-                                                    onClick={prevImage}
-                                                    disabled={currentImageIndex === 0}
-                                                    className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
-                                                    style={{ fontSize: '20px' }}
+                                                    onClick={() => { setShowListModal(true); setShowMenu(false); }}
+                                                    className="w-full text-left px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-b-lg font-medium flex items-center gap-2"
                                                 >
-                                                    ‹
+                                                    <span>📋</span>
+                                                    <span>Список ({currentCards.length})</span>
                                                 </button>
-                                                <button
-                                                    onClick={nextImage}
-                                                    disabled={currentImageIndex === images.length - 1}
-                                                    className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black bg-opacity-50 text-white flex items-center justify-center hover:bg-opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity`}
-                                                    style={{ fontSize: '20px' }}
-                                                >
-                                                    ›
-                                                </button>
-                                            </>
-                                        )}
-                                        <span className="text-sm font-medium">
-                                            {currentImage.caption}
-                                        </span>
-                                        {images.length > 1 && (
-                                            <span className="text-xs ml-2 opacity-75">
-                                                ({currentImageIndex + 1}/{images.length})
-                                            </span>
+                                            </div>
                                         )}
                                     </div>
+                                    <span className="text-sm text-gray-600">
+                                        {currentCardIndex + 1} из {currentCards.length}
+                                    </span>
                                 </div>
-                            );
-                        })()}
-                    </div>
+
+                                {/* Center: Image Caption */}
+                                <div className="text-center">
+                                    <span className="text-sm font-medium">
+                                        {currentImage.caption}
+                                    </span>
+                                    {images.length > 1 && (
+                                        <span className="text-xs ml-1 opacity-75">
+                                            ({currentImageIndex + 1}/{images.length})
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Right: Image Navigation Arrows */}
+                                <div className="flex items-center gap-2">
+                                    {images.length > 1 ? (
+                                        <>
+                                            <button
+                                                onClick={prevImage}
+                                                disabled={currentImageIndex === 0}
+                                                className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center hover:bg-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                ‹
+                                            </button>
+                                            <button
+                                                onClick={nextImage}
+                                                disabled={currentImageIndex === images.length - 1}
+                                                className="w-8 h-8 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center hover:bg-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                ›
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="w-[72px]"></div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    );
+                })()}
+            </div>
+
+            {/* Main Content */}
+            <main className="max-w-4xl mx-auto py-4 px-4">
+                {/* Card */}
+                <div className="bg-white rounded-lg shadow-lg">
 
                     {/* Card Content */}
                     <div className="p-6">
@@ -597,7 +613,7 @@ const MiniappContent = () => {
                                         }`}
                                     >
                                         {favorites.some(fav => fav.id === currentCard.id)
-                                            ? (showFavorites ? 'Удалить из избранного' : 'В избранном')
+                                            ? (viewMode === 'favorites' ? 'Удалить из избранного' : 'В избранном')
                                             : 'В избранное'}
                                     </button>
 
@@ -641,11 +657,7 @@ const MiniappContent = () => {
                     >
                         ← Назад
                     </button>
-                    <div className="bg-white bg-opacity-90 rounded-lg p-2">
-                <span className="text-sm font-medium text-gray-900">
-                  #{currentCard.id}
-                </span>
-                    </div>
+
                     <button
                         onClick={nextCard}
                         disabled={currentCardIndex === currentCards.length - 1}
@@ -660,34 +672,19 @@ const MiniappContent = () => {
                 </div>
             </main>
 
-            {/* Card List Modal */}
+            {/* Card List Modal - показывает карточки текущего режима */}
             <CardListModal
-                isOpen={showCardListModal}
-                onClose={() => setShowCardListModal(false)}
-                cards={showFavorites ? favorites : cards}
+                isOpen={showListModal}
+                onClose={() => setShowListModal(false)}
+                cards={currentCards}
                 onCardSelect={handleCardSelect}
                 currentCardId={currentCard.id}
-                title="Все доступные карточки"
-            />
-
-            {/* Solved Cards Modal */}
-            <CardListModal
-                isOpen={showSolvedModal}
-                onClose={() => setShowSolvedModal(false)}
-                cards={solvedCards}
-                onCardSelect={handleCardSelect}
-                currentCardId={currentCard.id}
-                title="Решенные карточки"
-            />
-
-            {/* Unsolved Cards Modal */}
-            <CardListModal
-                isOpen={showUnsolvedModal}
-                onClose={() => setShowUnsolvedModal(false)}
-                cards={unsolvedCards}
-                onCardSelect={handleCardSelect}
-                currentCardId={currentCard.id}
-                title="Нерешенные карточки"
+                title={{
+                    'all': 'Все карточки',
+                    'favorites': 'Избранные карточки',
+                    'solved': 'Решенные карточки',
+                    'unsolved': 'Нерешенные карточки'
+                }[viewMode]}
             />
         </div>
     );
