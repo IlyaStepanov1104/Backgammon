@@ -2,6 +2,7 @@ import Link from "next/link";
 
 export default function Home() {
     const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot';
+    const databaseAdminerUrl = process.env.NEXT_PUBLIC_DATABASE_URL || '/404';
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -15,7 +16,7 @@ export default function Home() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Административная панель */}
                     <Link href="/admin" className="group" target="_blank">
                         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 h-full border-2 border-transparent hover:border-blue-500">
@@ -42,6 +43,68 @@ export default function Home() {
                         </div>
                     </Link>
 
+
+                    {/* Административная панель БД */}
+                    <Link href={databaseAdminerUrl} className="group" target="_blank">
+                        <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 h-full border-2 border-transparent hover:border-amber-500">
+                            <div className="flex flex-col items-center text-center h-full">
+                                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-amber-200 transition-colors">
+                                    <svg
+                                        className="w-10 h-10 text-amber-600"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 7c0-1.657 3.582-3 8-3s8 1.343 8 3-3.582 3-8 3-8-1.343-8-3z"
+                                        />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 7v5c0 1.657 3.582 3 8 3s8-1.343 8-3V7"
+                                        />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 12v5c0 1.657 3.582 3 8 3s8-1.343 8-3v-5"
+                                        />
+                                    </svg>
+                                </div>
+
+                                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                                    Администрирование БД
+                                </h2>
+
+                                <p className="text-gray-600 mb-6 flex-grow">
+                                    Управление базой данных: таблицы, записи, структура и запросы
+                                </p>
+
+                                <span className="inline-flex items-center text-amber-600 font-medium group-hover:text-amber-700">
+                                    Открыть Adminer
+                                    <svg
+                                        className="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                        />
+                                    </svg>
+                                </span>
+                            </div>
+                        </div>
+                    </Link>
+
+
                     {/* Тестовый миниапп */}
                     <Link href="/miniapp?user=424750854" className="group" target="_blank">
                         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 h-full border-2 border-transparent hover:border-green-500">
@@ -67,13 +130,14 @@ export default function Home() {
                         </div>
                     </Link>
 
+
                     {/* Telegram бот */}
                     <a href={`https://t.me/${botUsername}`} target="_blank" rel="noopener noreferrer" className="group">
                         <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 h-full border-2 border-transparent hover:border-sky-500">
                             <div className="flex flex-col items-center text-center h-full">
                                 <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mb-6 group-hover:bg-sky-200 transition-colors">
                                     <svg className="w-10 h-10 text-sky-600" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                                     </svg>
                                 </div>
                                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
