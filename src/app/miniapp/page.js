@@ -23,6 +23,7 @@ const MiniappContent = () => {
     const [showMenu, setShowMenu] = useState(false);
     const [screenshotLoading, setScreenshotLoading] = useState(false);
     const [screenshotStatus, setScreenshotStatus] = useState(null); // 'success' | 'error' | null
+    const [lightboxImage, setLightboxImage] = useState(null); // URL изображения для lightbox
     const menuRef = useRef(null);
 
     useEffect(() => {
@@ -140,7 +141,20 @@ const MiniappContent = () => {
             });
 
             if (response.ok) {
+                const newStatus = isCorrect ? 'correct' : 'incorrect';
                 setUserResponse(isCorrect);
+
+                // Обновляем response_status в текущей карточке во всех массивах
+                const updateCardStatus = (cardsList) =>
+                    cardsList.map(card =>
+                        card.id === currentCard.id
+                            ? { ...card, response_status: newStatus }
+                            : card
+                    );
+
+                setCards(updateCardStatus);
+                setFavorites(updateCardStatus);
+
                 // Обновляем списки решенных и нерешенных
                 fetchSolved();
                 fetchUnsolved();
@@ -385,11 +399,12 @@ const MiniappContent = () => {
 
                     return (
                         <>
-                            {/* Image */}
+                            {/* Image with click to zoom */}
                             <img
                                 src={currentImage.url}
                                 alt={currentCard.title}
-                                className="w-full h-auto max-h-96 object-contain"
+                                className="w-full h-auto max-h-96 object-contain cursor-zoom-in"
+                                onClick={() => setLightboxImage(currentImage.url)}
                             />
 
                             {/* Control Bar */}
@@ -600,7 +615,7 @@ const MiniappContent = () => {
                                     onClick={handleShowAnswer}
                                     className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium col-span-2"
                                 >
-                                    Показать ответ
+                                    Показать
                                 </button>
                             ) : (
                                 <>
@@ -686,6 +701,27 @@ const MiniappContent = () => {
                     'unsolved': 'Нерешенные карточки'
                 }[viewMode]}
             />
+
+            {/* Lightbox для просмотра изображения */}
+            {lightboxImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <button
+                        className="absolute top-4 right-4 text-white text-4xl font-bold hover:text-gray-300 z-10"
+                        onClick={() => setLightboxImage(null)}
+                    >
+                        ×
+                    </button>
+                    <img
+                        src={lightboxImage}
+                        alt="Увеличенное изображение"
+                        className="max-w-full max-h-full object-contain p-4"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 }

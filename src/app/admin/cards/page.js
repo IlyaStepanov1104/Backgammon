@@ -697,7 +697,10 @@ function CardForm({card, onSubmit, onCancel}) {
         correct_moves: card?.correct_moves || '',
         position_description: card?.position_description || '',
         difficulty_level: card?.difficulty_level || 'medium',
-        tags: []
+        tags: [],
+        delete_image_url: false,
+        delete_image_url_2: false,
+        delete_image_url_3: false
     });
     const [showTagSelector, setShowTagSelector] = useState(false);
     const [tagNames, setTagNames] = useState({});
@@ -754,12 +757,19 @@ function CardForm({card, onSubmit, onCancel}) {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Если есть файлы изображений, загружаем их
-        if (formData.image_file || formData.image_file_2 || formData.image_file_3) {
+        // Если есть файлы изображений или удаления, используем FormData
+        if (formData.image_file || formData.image_file_2 || formData.image_file_3 ||
+            formData.delete_image_url || formData.delete_image_url_2 || formData.delete_image_url_3) {
             const formDataToSend = new FormData();
             if (formData.image_file) formDataToSend.append('image', formData.image_file);
             if (formData.image_file_2) formDataToSend.append('image_2', formData.image_file_2);
             if (formData.image_file_3) formDataToSend.append('image_3', formData.image_file_3);
+
+            // Передаём маркер удаления для изображений
+            if (formData.delete_image_url) formDataToSend.append('image_url', '__DELETE__');
+            if (formData.delete_image_url_2) formDataToSend.append('image_url_2', '__DELETE__');
+            if (formData.delete_image_url_3) formDataToSend.append('image_url_3', '__DELETE__');
+
             formDataToSend.append('title', formData.title);
             formDataToSend.append('description', formData.description);
             formDataToSend.append('correct_moves', formData.correct_moves);
@@ -852,18 +862,39 @@ function CardForm({card, onSubmit, onCancel}) {
                             <input
                                 type="file"
                                 accept="image/*"
-                                required={!card}
+                                required={!card && !formData.image_url}
+                                disabled={formData.delete_image_url}
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
-                                        setFormData(prev => ({...prev, image_file: file}));
+                                        setFormData(prev => ({...prev, image_file: file, delete_image_url: false}));
                                     }
                                 }}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
                             />
-                            {card?.image_url && (
-                                <div className="mt-2">
+                            {card?.image_url && !formData.delete_image_url && (
+                                <div className="mt-2 relative">
                                     <img src={card.image_url} alt="Позиция" className="w-full rounded" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url: true, image_file: null}))}
+                                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow"
+                                        title="Удалить изображение"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            )}
+                            {formData.delete_image_url && (
+                                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                    Изображение будет удалено
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url: false}))}
+                                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                        Отменить
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -908,17 +939,38 @@ function CardForm({card, onSubmit, onCancel}) {
                             <input
                                 type="file"
                                 accept="image/*"
+                                disabled={formData.delete_image_url_2}
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
-                                        setFormData(prev => ({...prev, image_file_2: file}));
+                                        setFormData(prev => ({...prev, image_file_2: file, delete_image_url_2: false}));
                                     }
                                 }}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 disabled:opacity-50"
                             />
-                            {card?.image_url_2 && (
-                                <div className="mt-2">
+                            {card?.image_url_2 && !formData.delete_image_url_2 && (
+                                <div className="mt-2 relative">
                                     <img src={card.image_url_2} alt="Ход в партии" className="w-full rounded" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url_2: true, image_file_2: null}))}
+                                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow"
+                                        title="Удалить изображение"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            )}
+                            {formData.delete_image_url_2 && (
+                                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                    Изображение будет удалено
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url_2: false}))}
+                                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                        Отменить
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -963,17 +1015,38 @@ function CardForm({card, onSubmit, onCancel}) {
                             <input
                                 type="file"
                                 accept="image/*"
+                                disabled={formData.delete_image_url_3}
                                 onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
-                                        setFormData(prev => ({...prev, image_file_3: file}));
+                                        setFormData(prev => ({...prev, image_file_3: file, delete_image_url_3: false}));
                                     }
                                 }}
-                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 disabled:opacity-50"
                             />
-                            {card?.image_url_3 && (
-                                <div className="mt-2">
+                            {card?.image_url_3 && !formData.delete_image_url_3 && (
+                                <div className="mt-2 relative">
                                     <img src={card.image_url_3} alt="Лучший ход" className="w-full rounded" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url_3: true, image_file_3: null}))}
+                                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow"
+                                        title="Удалить изображение"
+                                    >
+                                        x
+                                    </button>
+                                </div>
+                            )}
+                            {formData.delete_image_url_3 && (
+                                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                                    Изображение будет удалено
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({...prev, delete_image_url_3: false}))}
+                                        className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                        Отменить
+                                    </button>
                                 </div>
                             )}
                         </div>

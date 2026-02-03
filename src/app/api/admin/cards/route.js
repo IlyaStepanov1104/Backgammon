@@ -302,15 +302,22 @@ export async function PUT(request) {
         }
 
         // Если изображения не изменились, получаем текущие из БД
+        // Специальное значение '__DELETE__' означает удаление изображения
         const currentCard = await query('SELECT image_url, image_url_2, image_url_3 FROM cards WHERE id = ?', [id]);
         if (currentCard.length > 0) {
-            if (!image_url) {
+            if (image_url === '__DELETE__') {
+                image_url = null;
+            } else if (!image_url) {
                 image_url = currentCard[0].image_url;
             }
-            if (!image_url_2) {
+            if (image_url_2 === '__DELETE__') {
+                image_url_2 = null;
+            } else if (!image_url_2) {
                 image_url_2 = currentCard[0].image_url_2;
             }
-            if (!image_url_3) {
+            if (image_url_3 === '__DELETE__') {
+                image_url_3 = null;
+            } else if (!image_url_3) {
                 image_url_3 = currentCard[0].image_url_3;
             }
         }

@@ -16,7 +16,8 @@ export default function PackagesPage() {
     description: '',
     price: '',
     cardIds: [],
-    isActive: true
+    isActive: true,
+    expiresAt: ''
   });
   const router = useRouter();
 
@@ -49,7 +50,8 @@ export default function PackagesPage() {
       description: '',
       price: '',
       cardIds: [],
-      isActive: true
+      isActive: true,
+      expiresAt: ''
     });
   };
 
@@ -88,12 +90,19 @@ export default function PackagesPage() {
 
   const handleEdit = (pkg) => {
     setEditingPackage(pkg);
+    // Форматируем дату для input datetime-local (YYYY-MM-DDTHH:mm)
+    let expiresAtFormatted = '';
+    if (pkg.expires_at) {
+      const date = new Date(pkg.expires_at);
+      expiresAtFormatted = date.toISOString().slice(0, 16);
+    }
     setFormData({
       name: pkg.name,
       description: pkg.description || '',
       price: pkg.price,
       cardIds: pkg.cardIds || [],
-      isActive: pkg.is_active
+      isActive: pkg.is_active,
+      expiresAt: expiresAtFormatted
     });
   };
 
@@ -156,6 +165,9 @@ export default function PackagesPage() {
                       Карточек
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Доступен до
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Статус
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -182,6 +194,24 @@ export default function PackagesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{pkg.card_count}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {pkg.expires_at ? (
+                          <div className={`text-sm ${new Date(pkg.expires_at) < new Date() ? 'text-red-600' : 'text-gray-900'}`}>
+                            {new Date(pkg.expires_at).toLocaleString('ru-RU', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                            {new Date(pkg.expires_at) < new Date() && (
+                              <span className="ml-1 text-xs">(истёк)</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400">Бессрочно</div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -285,6 +315,21 @@ export default function PackagesPage() {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
               placeholder="999.00"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Доступен до (дата окончания продаж)
+            </label>
+            <input
+              type="datetime-local"
+              value={formData.expiresAt}
+              onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Оставьте пустым для бессрочного пакета
+            </p>
           </div>
 
           <div>

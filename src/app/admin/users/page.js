@@ -379,13 +379,13 @@ export default function UsersPage() {
                                                     }}
                                                     className="text-indigo-600 hover:text-indigo-900 mr-3"
                                                 >
-                                                    Дать доступ
+                                                    Редактировать
                                                 </button>
                                                 <button
                                                     onClick={() => handleRevokeAccess(user.id)}
                                                     className="text-red-600 hover:text-red-900"
                                                 >
-                                                    Отозвать доступ
+                                                    Сбросить доступ
                                                 </button>
                                             </td>
                                         </tr>

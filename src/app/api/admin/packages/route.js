@@ -25,6 +25,7 @@ export async function GET(request) {
         p.name,
         p.description,
         p.price,
+        p.expires_at,
         p.is_active,
         p.created_at,
         p.updated_at,
@@ -101,7 +102,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { name, description, price, cardIds, isActive } = body;
+    const { name, description, price, cardIds, isActive, expiresAt } = body;
 
     // Валидация
     if (!name || !price) {
@@ -133,9 +134,9 @@ export async function POST(request) {
     try {
       // Создаем пакет
       const [result] = await connection.execute(
-        `INSERT INTO packages (name, description, price, is_active)
-         VALUES (?, ?, ?, ?)`,
-        [name, description || null, price, isActive ? 1 : 0]
+        `INSERT INTO packages (name, description, price, expires_at, is_active)
+         VALUES (?, ?, ?, ?, ?)`,
+        [name, description || null, price, expiresAt || null, isActive ? 1 : 0]
       );
 
       const packageId = result.insertId;
@@ -197,7 +198,7 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { id, name, description, price, cardIds, isActive } = body;
+    const { id, name, description, price, cardIds, isActive, expiresAt } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Package ID is required' }, { status: 400 });
@@ -230,9 +231,9 @@ export async function PUT(request) {
       // Обновляем пакет
       await connection.execute(
         `UPDATE packages
-         SET name = ?, description = ?, price = ?, is_active = ?
+         SET name = ?, description = ?, price = ?, expires_at = ?, is_active = ?
          WHERE id = ?`,
-        [name, description || null, price, isActive ? 1 : 0, id]
+        [name, description || null, price, expiresAt || null, isActive ? 1 : 0, id]
       );
 
       // Обновляем карточки - удаляем старые и добавляем новые

@@ -11,7 +11,7 @@ export async function GET(request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    // Получаем список активных пакетов
+    // Получаем список активных пакетов (не истекших)
     const packages = await query(
       `SELECT
         p.id,
@@ -28,6 +28,7 @@ export async function GET(request) {
       FROM packages p
       LEFT JOIN package_cards pc ON p.id = pc.package_id
       WHERE p.is_active = 1
+        AND (p.expires_at IS NULL OR p.expires_at > NOW())
       GROUP BY p.id
       ORDER BY p.price ASC`,
       [userId]
