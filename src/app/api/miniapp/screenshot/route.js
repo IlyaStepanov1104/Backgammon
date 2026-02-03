@@ -13,6 +13,30 @@ async function getBrowser() {
     return browser;
 }
 
+// Отправка фото через Telegram API напрямую (без импорта бота)
+async function sendTelegramPhoto(chatId, photoBuffer, caption) {
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('photo', new Blob([photoBuffer], { type: 'image/png' }), 'screenshot.png');
+    if (caption) {
+        formData.append('caption', caption);
+    }
+
+    const response = await fetch(
+        `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendPhoto`,
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+
+    const result = await response.json();
+    if (!result.ok) {
+        throw new Error(`Telegram API error: ${result.description}`);
+    }
+    return result;
+}
+
 // POST - создание и отправка скриншота карточки через Telegram
 export async function POST(request) {
     try {
@@ -21,9 +45,6 @@ export async function POST(request) {
         if (!cardId || !telegramId) {
             return NextResponse.json({ error: 'Card ID and Telegram ID are required' }, { status: 400 });
         }
-
-        // Импортируем бота
-        const { bot } = require('@/bot/bot');
 
         const browser = await getBrowser();
         const page = await browser.newPage();
@@ -52,10 +73,8 @@ export async function POST(request) {
             // Делаем скриншот только карточки
             const screenshotBuffer = await element.screenshot({ type: 'png' });
 
-            // Отправляем скриншот через Telegram бота
-            await bot.sendPhoto(telegramId, screenshotBuffer, {
-                caption: 'Скриншот карточки'
-            });
+            // Отправляем скриншот через Telegram API напрямую
+            await sendTelegramPhoto(telegramId, screenshotBuffer, 'Скриншот карточки');
 
             return NextResponse.json({
                 success: true,
