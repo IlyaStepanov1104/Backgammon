@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { pool, query, getConnection } = require('../database');
+const { pool, query, getConnection } = require('.');
 require('dotenv').config();
 
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
