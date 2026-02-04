@@ -5,7 +5,7 @@ module.exports = {
     {
       name: 'app',
       script: 'npm',
-      args: 'start',
+      args: 'run app:start',
       instances: 1,
       autorestart: true,
       watch: false,

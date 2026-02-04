@@ -632,7 +632,6 @@ async function buyPackage(chatId, telegramId, packageId) {
             prices,
             {
                 start_parameter: `package_${pkg.id}`,
-                photo_url: `${process.env.NEXT_PUBLIC_APP_URL}bot_packages_img.jpg`, // Можно добавить изображение пакета
                 need_name: false,
                 need_phone_number: false,
                 need_email: true,
