@@ -1,5 +1,3 @@
-const path = require('path');
-
 module.exports = {
   apps: [
     {
@@ -17,7 +15,7 @@ module.exports = {
     },
     {
       name: 'bot',
-      script: path.join(PROJECT_PATH, 'src/bot/bot.js'),
+      script: './src/bot/bot.js',
       instances: 1,
       autorestart: true,
       watch: false,
