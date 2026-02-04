@@ -22,11 +22,11 @@ export async function GET(request, { params }) {
     // Получаем избранные карточки пользователя
     const sql = `
       SELECT c.id, c.title, c.description, c.image_url, c.difficulty_level,
-             uf.added_at as favorite_added_at
+             uf.created_at as favorite_added_at
       FROM user_favorites uf
       JOIN cards c ON uf.card_id = c.id
       WHERE uf.user_id = ?
-      ORDER BY uf.added_at DESC
+      ORDER BY uf.created_at DESC
     `;
 
     const favorites = await query(sql, [userId]);

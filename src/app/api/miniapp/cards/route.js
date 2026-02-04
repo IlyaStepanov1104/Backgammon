@@ -31,7 +31,7 @@ export async function GET(request) {
             // Получаем избранные карточки
             sql = `
                 SELECT c.*,
-                       uf.added_at as favorite_added_at,
+                       uf.created_at as favorite_added_at,
                        ur.response_status,
                        ur.response_time
                 FROM cards c
@@ -47,7 +47,7 @@ export async function GET(request) {
                 sql += ' AND ur.response_status = \'incorrect\'';
             }
 
-            sql += ' ORDER BY uf.added_at DESC';
+            sql += ' ORDER BY uf.created_at DESC';
         } else {
             // Получаем доступные карточки
             sql = `

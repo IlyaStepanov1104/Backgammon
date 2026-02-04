@@ -99,7 +99,6 @@ bot.onText(/^[A-Z0-9]{6,20}$/, async (msg) => {
 
         // Проверяем промокод
         const promoResult = await checkPromoCode(promoCode, user.id);
-        console.log("%c 1 --> Line: 61||bot.js\n promoResult: ", "color:#f0f;", promoResult);
 
         if (promoResult.success) {
             const message = `✅ Промокод активирован!\n\nТеперь у тебя есть доступ к ${promoResult.cardCount} карточкам.\n\nНажми кнопку ниже, чтобы начать изучение:`;
@@ -188,15 +187,12 @@ bot.on('callback_query', async (callbackQuery) => {
 // Обработка pre_checkout_query (подтверждение перед оплатой)
 // ВАЖНО: Telegram требует ответ в течение 10 секунд!
 bot.on('pre_checkout_query', async (preCheckoutQuery) => {
-    console.log("%c 1 --> 191||bot.js\n preCheckoutQuery: ", "color:#FFCCCC;", preCheckoutQuery);
     const startTime = Date.now();
 
     try {
         const payload = JSON.parse(preCheckoutQuery.invoice_payload);
         const packageId = payload.package_id;
         const telegramId = payload.user_telegram_id;
-
-        console.log(`Pre-checkout query от пользователя ${telegramId} для пакета ${packageId}`);
 
         // Проверяем пакет с таймаутом 5 секунд
         const checkPromise = query(
@@ -216,7 +212,6 @@ bot.on('pre_checkout_query', async (preCheckoutQuery) => {
 
         // Если таймаут — подтверждаем (проверка была при создании Invoice)
         if (result === 'timeout') {
-            console.log(`Pre-checkout: таймаут БД, подтверждаем (${Date.now() - startTime}ms)`);
             await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
             return;
         }
@@ -240,14 +235,12 @@ bot.on('pre_checkout_query', async (preCheckoutQuery) => {
         }
 
         await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
-        console.log(`Pre-checkout query подтверждён (${Date.now() - startTime}ms)`);
     } catch (error) {
         console.error('Ошибка обработки pre_checkout_query:', error);
         // При ошибке всё равно пробуем подтвердить, чтобы не терять платёж
         // (проверка была при создании Invoice)
         try {
             await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
-            console.log('Pre-checkout подтверждён после ошибки');
         } catch (e) {
             console.error('Не удалось ответить на pre_checkout_query:', e.message);
         }
@@ -256,7 +249,6 @@ bot.on('pre_checkout_query', async (preCheckoutQuery) => {
 
 // Обработка successful_payment (успешная оплата)
 bot.on('message', async (msg) => {
-    console.log("%c 2 --> 259||bot.js\n msg: ", "color:#CCFFCC;", msg);
     if (!msg.successful_payment) return;
 
     const chatId = msg.chat.id;
@@ -268,8 +260,6 @@ bot.on('message', async (msg) => {
         const packageId = payload.package_id;
 
         console.log(`Успешная оплата от пользователя ${telegramId} для пакета ${packageId}`);
-        console.log(`Telegram payment charge ID: ${payment.telegram_payment_charge_id}`);
-        console.log(`Provider payment charge ID: ${payment.provider_payment_charge_id}`);
 
         // Получаем пользователя из БД
         const users = await query('SELECT id FROM users WHERE telegram_id = ?', [telegramId]);
@@ -642,10 +632,11 @@ async function buyPackage(chatId, telegramId, packageId) {
             prices,
             {
                 start_parameter: `package_${pkg.id}`,
-                photo_url: null, // Можно добавить изображение пакета
+                photo_url: `${process.env.NEXT_PUBLIC_APP_URL}bot_packages_img.jpg`, // Можно добавить изображение пакета
                 need_name: false,
                 need_phone_number: false,
-                need_email: false,
+                need_email: true,
+                send_email_to_provider: true,
                 need_shipping_address: false,
                 is_flexible: false
             }
