@@ -9,7 +9,7 @@ console.log('🤖 Бот запущен с пуллингом...');
 
 // Обработка команды /packages
 bot.onText(/\/packages/, async (msg) => {
-    console.log("%c 1 --> 12||bot.js\n packages -> msg: ","color:#FFCCCC;", msg);
+    console.log("%c 1 --> 12||bot.js\n packages -> msg: ", "color:#FFCCCC;", msg);
     const chatId = msg.chat.id;
     const user = msg.from;
 
@@ -24,7 +24,7 @@ bot.onText(/\/packages/, async (msg) => {
 
 // Обработка команды /start
 bot.onText(/\/start/, async (msg) => {
-    console.log("%c 2 --> 27||bot.js\n start -> msg: ","color:#CCFFCC;", msg);
+    console.log("%c 2 --> 27||bot.js\n start -> msg: ", "color:#CCFFCC;", msg);
     const chatId = msg.chat.id;
     const user = msg.from;
 
@@ -92,7 +92,7 @@ bot.onText(/\/start/, async (msg) => {
 
 // Обработка промокодов
 bot.onText(/^[A-Z0-9]{6,20}$/, async (msg) => {
-    console.log("%c 3 --> 95||bot.js\n PROMO -> msg: ","color:#CCCCFF;", msg);
+    console.log("%c 3 --> 95||bot.js\n PROMO -> msg: ", "color:#CCCCFF;", msg);
     const chatId = msg.chat.id;
     const user = msg.from;
     const promoCode = msg.text.toUpperCase();
@@ -129,7 +129,7 @@ bot.onText(/^[A-Z0-9]{6,20}$/, async (msg) => {
 
 // Обработка callback запросов (кнопки)
 bot.on('callback_query', async (callbackQuery) => {
-    console.log("%c 4 --> 132||bot.js\n callbackQuery: ","color:#FFD700;", callbackQuery);
+    console.log("%c 4 --> 132||bot.js\n callbackQuery: ", "color:#FFD700;", callbackQuery);
     const chatId = callbackQuery.message.chat.id;
     const data = callbackQuery.data;
     const user = callbackQuery.from;
@@ -191,7 +191,7 @@ bot.on('callback_query', async (callbackQuery) => {
 // Обработка pre_checkout_query (подтверждение перед оплатой)
 // ВАЖНО: Telegram требует ответ в течение 10 секунд!
 bot.on('pre_checkout_query', async (preCheckoutQuery) => {
-    console.log("%c 5 --> 194||bot.js\n preCheckoutQuery: ","color:#00FA9A;", preCheckoutQuery);
+    console.log("%c 5 --> 194||bot.js\n preCheckoutQuery: ", "color:#00FA9A;", preCheckoutQuery);
     const startTime = Date.now();
 
     try {
@@ -254,7 +254,7 @@ bot.on('pre_checkout_query', async (preCheckoutQuery) => {
 
 // Обработка successful_payment (успешная оплата)
 bot.on('message', async (msg) => {
-    console.log("%c 6 --> 257||bot.js\n msg: ","color:#FFA07A;", msg);
+    console.log("%c 6 --> 257||bot.js\n msg: ", "color:#FFA07A;", msg);
     if (!msg.successful_payment) return;
 
     const chatId = msg.chat.id;
@@ -381,12 +381,12 @@ bot.on('message', async (msg) => {
 
 // Обработка ошибок
 bot.on('polling_error', (error) => {
-    console.log("%c 7 --> 384||bot.js\n error: ","color:#FF5555;", error);
+    console.log("%c 7 --> 384||bot.js\n error: ", "color:#FF5555;", error);
     console.error('Ошибка пуллинга:', error);
 });
 
 bot.on('error', (error) => {
-    console.log("%c 8 --> 389||bot.js\n error: ","color:#FF9933;", error);
+    console.log("%c 8 --> 389||bot.js\n error: ", "color:#FF9933;", error);
     console.error('Ошибка бота:', error);
 });
 
@@ -645,7 +645,24 @@ async function buyPackage(chatId, telegramId, packageId) {
                 need_email: true,
                 send_email_to_provider: true,
                 need_shipping_address: false,
-                is_flexible: false
+                is_flexible: false,
+                provider_data: {
+                    receipt: {
+                        items: [
+                            {
+                                description,
+                                quantity: 1,
+                                amount: {
+                                    value: pkg.price,
+                                    currency
+                                },
+                                vat_code: 1,
+                                payment_mode: "full_payment",
+                                payment_subject: "service"
+                            }
+                        ],
+                    }
+                }
             }
         );
 
